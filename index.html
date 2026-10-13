@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>venuist</title>
+  <meta name="description" content="venuist: Roblox scripting and developer commissions.">
+  <!-- How the link looks when it's pasted into Discord, Twitter and the like. theme-color is the
+       stripe down the side of a Discord embed. Once the site is hosted, add its address and a
+       1200×630 preview image (both need full https:// addresses):
+       <meta property="og:url" content="https://your-site/">
+       <meta property="og:image" content="https://your-site/preview.png">
+       and change twitter:card to summary_large_image. -->
+  <meta name="theme-color" content="#f2c48d">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="venuist">
+  <meta property="og:title" content="venuist">
+  <meta property="og:description" content="Roblox scripting and developer commissions.">
+  <meta name="twitter:card" content="summary">
+  <!-- The tab icon: the Venus sign, drawn in amber pixels on a 16×16 grid. -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%23f2c48d' d='M5 0h6v1H5zM3 1h10v1H3zM2 2h3v1H2zM11 2h3v1h-3zM2 3h2v4H2zM12 3h2v4h-2zM2 7h3v1H2zM11 7h3v1h-3zM3 8h10v1H3zM5 9h6v1H5zM7 10h2v6H7zM4 12h8v2H4z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://upload.wikimedia.org">
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=23">
+  <script>
+    document.documentElement.classList.add('js');
+    // No mouse to hover with (a touch screen), or reduced motion on: the demos play when they're
+    // tapped, not hovered. Set here so the stills don't flash up wrong first (see script.js).
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('tap');
+  </script>
+</head>
+<body>
+  <canvas class="clouds" id="clouds" aria-hidden="true"></canvas>
+
+  <!-- Heat haze: makes the glow behind the name waver like air over hot ground. Under it, the
+       icons the page uses: the GitHub and Discord logos (from Simple Icons, CC0) and an envelope. -->
+  <svg class="defs" aria-hidden="true" focusable="false">
+    <filter id="heat-haze" x="-40%" y="-150%" width="180%" height="400%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.015 0.07" numOctaves="2" seed="4" result="noise">
+        <animate attributeName="baseFrequency" dur="7s" values="0.015 0.07;0.02 0.1;0.015 0.07" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="10" xChannelSelector="R" yChannelSelector="B"/>
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></symbol>
+    <symbol id="i-discord" viewBox="0 0 24 24"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></g></symbol>
+  </svg>
+
+  <header class="masthead">
+    <h1 class="name" data-text="venuist">venuist</h1>
+  </header>
+
+  <main class="wrap">
+    <section class="view" id="home" aria-label="Work">
+      <!-- The projects: one big tile beside two small ones (stacked on phones).
+           Each card is one link: its title covers the whole card. Without script.js it jumps down to
+           the project's write-up; script.js turns it into a button that opens the write-up in place.
+           The demo is the biggest thing on the card: a still frame, and a short muted clip that
+           plays over it while the card is hovered (or, on a phone, when the picture is tapped).
+           To use your own, for each card:
+             - the still: an image of one frame of the clip, in <img class="still">
+             - the clip: an .mp4 (or .webm) in the <source>s, kept short, muted and small
+             - data-start: the second in the clip the still was taken at, so it starts from there
+           ALL THE CLIPS AND STILLS ARE PLACEHOLDERS: cat videos from Wikimedia Commons, credited
+           under each write-up's player. Replace them before you share the site. -->
+      <div class="projects">
+        <article class="block project">
+          <p class="card-label"><span class="card-num">01</span><span class="card-topic">server validation</span></p>
+          <h2 class="card-head"><a class="card-open" href="#combat-system" aria-describedby="combat-system-about"><span class="card-title">combat system</span></a></h2>
+          <div class="demo">
+            <video muted loop playsinline preload="none" aria-hidden="true" data-start="8">
+              <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/0/0d/Cat_Play_02.webm/Cat_Play_02.webm.480p.vp9.webm" type="video/webm">
+              <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/0/0d/Cat_Play_02.webm/Cat_Play_02.webm.360p.mpeg4.mov" type="video/mp4">
+            </video>
+            <img class="still" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Cat_Play_02.webm/960px-seek%3D8-Cat_Play_02.webm.jpg" data-fallback="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Cat_Play_02.webm/500px-seek%3D8-Cat_Play_02.webm.jpg" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;delete this.dataset.fallback}else this.hidden=true" alt="" width="960" height="540" fetchpriority="high">
+          </div>
+          <p class="card-about" id="combat-system-about">Combo melee combat with hits checked on the server, so exploiters can't fake them.</p>
+        </article>
+        <article class="block project">
+          <p class="card-label"><span class="card-num">02</span><span class="card-topic">datastores</span></p>
+          <h2 class="card-head"><a class="card-open" href="#inventory-trading" aria-describedby="inventory-trading-about"><span class="card-title">inventory &amp; trading</span></a></h2>
+          <div class="demo">
+            <video muted loop playsinline preload="none" aria-hidden="true" data-start="1">
+              <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/Cat_Using_Scratcher_1_2016-06-09.webm.480p.vp9.webm" type="video/webm">
+              <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/Cat_Using_Scratcher_1_2016-06-09.webm.360p.mpeg4.mov" type="video/mp4">
+            </video>
+            <img class="still" src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/960px-seek%3D1-Cat_Using_Scratcher_1_2016-06-09.webm.jpg" data-fallback="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/500px-seek%3D1-Cat_Using_Scratcher_1_2016-06-09.webm.jpg" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;delete this.dataset.fallback}else this.hidden=true" alt="" width="960" height="540" loading="lazy">
+          </div>
+          <p class="card-about" id="inventory-trading-about">Saved inventories and a two-step trade window that never duplicates or loses items.</p>
+        </article>
+        <article class="block project">
+          <p class="card-label"><span class="card-num">03</span><span class="card-topic">game loop</span></p>
+          <h2 class="card-head"><a class="card-open" href="#round-system" aria-describedby="round-system-about"><span class="card-title">round system</span></a></h2>
+          <div class="demo">
+            <video muted loop playsinline preload="none" aria-hidden="true" data-start="4">
+              <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/Cat_interacting_with_catnip_%28nepeta%29.webm.480p.vp9.webm" type="video/webm">
+              <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/Cat_interacting_with_catnip_%28nepeta%29.webm.360p.mpeg4.mov" type="video/mp4">
+            </video>
+            <img class="still" src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/960px-seek%3D4-Cat_interacting_with_catnip_%28nepeta%29.webm.jpg" data-fallback="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/500px-seek%3D4-Cat_interacting_with_catnip_%28nepeta%29.webm.jpg" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;delete this.dataset.fallback}else this.hidden=true" alt="" width="960" height="540" loading="lazy">
+          </div>
+          <p class="card-about" id="round-system-about">A full game loop: lobby, map vote, balanced teams and a leaderboard.</p>
+        </article>
+      </div>
+
+      <!-- The write-ups. script.js shows one at a time, in the tiles' place: the other tiles slide
+           away as they dither out, and the card's demo and title fly into the write-up's player and
+           heading. "← all projects" (or Esc) flies them back. The closed ones are hidden with
+           hidden="until-found", so Ctrl+F still finds text in them and opens the right one.
+           Without script.js all three show, one after another.
+           Empty rows in the meta list are hidden: fill in type (commission, personal or game
+           contribution), role and time when you have them. A link with no href is hidden: give it
+           one when it's real, and it shows with an arrow.
+           Each write-up's player is the full demo, with sound and controls. To use a YouTube video
+           instead, swap its <video> for:
+             <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="combat system demo" allowfullscreen></iframe>
+           THE "view the source" LINKS GO TO github.com UNTIL YOU PUT EACH PROJECT'S REPO ADDRESS IN
+           THEIR href. -->
+      <div class="details" id="details">
+        <div class="details-frame">
+
+          <section class="detail" id="combat-system" aria-labelledby="combat-system-title">
+            <div class="detail-head">
+              <p class="detail-label">01 · server validation</p>
+              <button class="detail-close" type="button"><span class="as-back"><span class="arrow" aria-hidden="true">←</span> <span class="vh">back to </span>all projects</span><kbd aria-hidden="true">esc</kbd></button>
+            </div>
+            <h2 class="detail-title" id="combat-system-title" tabindex="-1">combat system</h2>
+            <div class="detail-grid">
+              <figure class="detail-figure">
+                <div class="demo demo-full">
+                  <video controls playsinline preload="none" aria-label="combat system demo" poster="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Cat_Play_02.webm/960px-seek%3D8-Cat_Play_02.webm.jpg">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/0/0d/Cat_Play_02.webm/Cat_Play_02.webm.480p.vp9.webm" type="video/webm">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/0/0d/Cat_Play_02.webm/Cat_Play_02.webm.360p.mpeg4.mov" type="video/mp4">
+                  </video>
+                </div>
+                <figcaption>fig. 1, the demo. <span class="credit">Placeholder clip: <a href="https://commons.wikimedia.org/wiki/File:Cat_Play_02.webm">Cat Play 02</a> by NairobiPapel(Kamaa), CC BY-SA 4.0.</span></figcaption>
+              </figure>
+              <div class="detail-copy">
+                <p>A combo-based melee system with server-validated hitboxes, stuns, and cooldowns, so exploiters can't fake hits. Each weapon is a single config module, so new ones drop in without touching the core.</p>
+                <dl class="meta">
+                  <div><dt>type</dt><dd></dd></div>
+                  <div><dt>role</dt><dd></dd></div>
+                  <div><dt>built with</dt><dd>luau</dd></div>
+                  <div><dt>covers</dt><dd>combat · server validation</dd></div>
+                  <div><dt>time</dt><dd></dd></div>
+                </dl>
+              </div>
+            </div>
+            <h3>highlights</h3>
+            <ul class="highlights">
+              <li>an input buffer, so a combo still lands when a player presses a little early</li>
+              <li>hit effects play instantly for the attacker, and the server has the final say</li>
+              <li>a debug view that draws every hitbox</li>
+            </ul>
+            <div class="detail-foot">
+              <p class="proof"><a>watch the demo</a><a class="repo" href="https://github.com/"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-github"/></svg>view the source</a></p>
+              <a class="cta" href="#contact">commission something like this</a>
+            </div>
+          </section>
+
+          <section class="detail" id="inventory-trading" aria-labelledby="inventory-trading-title">
+            <div class="detail-head">
+              <p class="detail-label">02 · datastores</p>
+              <button class="detail-close" type="button"><span class="as-back"><span class="arrow" aria-hidden="true">←</span> <span class="vh">back to </span>all projects</span><kbd aria-hidden="true">esc</kbd></button>
+            </div>
+            <h2 class="detail-title" id="inventory-trading-title" tabindex="-1">inventory &amp; trading</h2>
+            <div class="detail-grid">
+              <figure class="detail-figure">
+                <div class="demo demo-full">
+                  <video controls playsinline preload="none" aria-label="inventory &amp; trading demo" poster="https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/960px-seek%3D1-Cat_Using_Scratcher_1_2016-06-09.webm.jpg">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/Cat_Using_Scratcher_1_2016-06-09.webm.480p.vp9.webm" type="video/webm">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/7/71/Cat_Using_Scratcher_1_2016-06-09.webm/Cat_Using_Scratcher_1_2016-06-09.webm.360p.mpeg4.mov" type="video/mp4">
+                  </video>
+                </div>
+                <figcaption>fig. 2, the demo. <span class="credit">Placeholder clip: <a href="https://commons.wikimedia.org/wiki/File:Cat_Using_Scratcher_1_2016-06-09.webm">Cat Using Scratcher 1</a> by FASTILY, CC BY-SA 4.0.</span></figcaption>
+              </figure>
+              <div class="detail-copy">
+                <p>Player data that saves with session locking and automatic retries, plus an inventory and a two-step trade window. Nothing gets duplicated or lost, even if a server shuts down mid-trade.</p>
+                <dl class="meta">
+                  <div><dt>type</dt><dd></dd></div>
+                  <div><dt>role</dt><dd></dd></div>
+                  <div><dt>built with</dt><dd>luau</dd></div>
+                  <div><dt>covers</dt><dd>datastores · ui</dd></div>
+                  <div><dt>time</dt><dd></dd></div>
+                </dl>
+              </div>
+            </div>
+            <h3>highlights</h3>
+            <ul class="highlights">
+              <li>items stack, sort and search, and a new kind of item is just data</li>
+              <li>saves are versioned, so old player data upgrades itself</li>
+              <li>every trade is logged, so moderators can look one up</li>
+            </ul>
+            <div class="detail-foot">
+              <p class="proof"><a>watch the demo</a><a class="repo" href="https://github.com/"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-github"/></svg>view the source</a></p>
+              <a class="cta" href="#contact">commission something like this</a>
+            </div>
+          </section>
+
+          <section class="detail" id="round-system" aria-labelledby="round-system-title">
+            <div class="detail-head">
+              <p class="detail-label">03 · game loop</p>
+              <button class="detail-close" type="button"><span class="as-back"><span class="arrow" aria-hidden="true">←</span> <span class="vh">back to </span>all projects</span><kbd aria-hidden="true">esc</kbd></button>
+            </div>
+            <h2 class="detail-title" id="round-system-title" tabindex="-1">round system</h2>
+            <div class="detail-grid">
+              <figure class="detail-figure">
+                <div class="demo demo-full">
+                  <video controls playsinline preload="none" aria-label="round system demo" poster="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/960px-seek%3D4-Cat_interacting_with_catnip_%28nepeta%29.webm.jpg">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/Cat_interacting_with_catnip_%28nepeta%29.webm.480p.vp9.webm" type="video/webm">
+                    <source src="https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d8/Cat_interacting_with_catnip_%28nepeta%29.webm/Cat_interacting_with_catnip_%28nepeta%29.webm.360p.mpeg4.mov" type="video/mp4">
+                  </video>
+                </div>
+                <figcaption>fig. 3, the demo. <span class="credit">Placeholder clip: <a href="https://commons.wikimedia.org/wiki/File:Cat_interacting_with_catnip_(nepeta).webm">Cat interacting with catnip</a> by Leonora Enking, CC BY-SA 2.0.</span></figcaption>
+              </figure>
+              <div class="detail-copy">
+                <p>A complete game loop: lobby, map voting, team balancing, and an end-of-round leaderboard. It runs on one state machine, so adding a new game mode means adding one new file.</p>
+                <dl class="meta">
+                  <div><dt>type</dt><dd></dd></div>
+                  <div><dt>role</dt><dd></dd></div>
+                  <div><dt>built with</dt><dd>luau</dd></div>
+                  <div><dt>covers</dt><dd>game loop · architecture</dd></div>
+                  <div><dt>time</dt><dd></dd></div>
+                </dl>
+              </div>
+            </div>
+            <h3>highlights</h3>
+            <ul class="highlights">
+              <li>players who join mid-round go to the smaller team</li>
+              <li>round, vote and intermission times all live in one settings file</li>
+              <li>a match ends cleanly when too many players leave</li>
+            </ul>
+            <div class="detail-foot">
+              <p class="proof"><a>play the game</a><a>watch the demo</a><a class="repo" href="https://github.com/"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-github"/></svg>view the source</a></p>
+              <a class="cta" href="#contact">commission something like this</a>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="contact" aria-label="Contact">
+      <div class="block">
+        <h2>about</h2>
+        <p>I'm venuist, a scripter and developer who takes on commissions. I build systems that are clean to read, safe from exploiters, and easy for your team to extend after handoff.</p>
+        <p>The name is a play on Venus: the brightest planet in the sky, and the hottest.</p>
+      </div>
+      <div class="block">
+        <h2>stack</h2>
+        <ul class="tags">
+          <li>luau</li><li>roblox studio</li><li>rojo</li><li>git</li>
+        </ul>
+      </div>
+
+      <!-- The next four sections are hidden until you fill them in. Fill one in, then delete the
+           word hidden from its first line and it appears. Inside a section, anything left empty
+           (a step, a row, a question with no answer) stays hidden on its own. -->
+
+      <!-- How a commission goes, step by step (for example: brief, quote, payment, progress clips,
+           delivery, free fixes for a few days), and when you're around. Fill in, then delete the
+           word hidden. -->
+      <div class="block" id="process" hidden>
+        <h2>how it works</h2>
+        <ol class="steps"><li></li><li></li><li></li><li></li><li></li></ol>
+        <dl class="meta">
+          <div><dt>timezone</dt><dd></dd></div>
+          <div><dt>hours</dt><dd></dd></div>
+          <div><dt>turnaround</dt><dd></dd></div>
+          <div><dt>I take on</dt><dd></dd></div>
+          <div><dt>I don't take</dt><dd></dd></div>
+        </dl>
+      </div>
+
+      <!-- Starting prices (Robux, USD or both), how you take payment, and whether you ask for part
+           of it up front. Fill in, then delete the word hidden. -->
+      <div class="block" id="rates" hidden>
+        <h2>rates</h2>
+        <dl class="meta">
+          <div><dt>small</dt><dd></dd></div>
+          <div><dt>medium</dt><dd></dd></div>
+          <div><dt>large</dt><dd></dd></div>
+          <div><dt>payment</dt><dd></dd></div>
+          <div><dt>deposit</dt><dd></dd></div>
+        </dl>
+      </div>
+
+      <!-- Real vouches only, each with the person's OK to show it. One per line, like this:
+           <li><p>what they said</p><p class="who">their name or handle · what you made for them</p></li>
+           Fill in, then delete the word hidden. -->
+      <div class="block" id="vouches" hidden>
+        <h2>vouches</h2>
+        <ul class="vouches"></ul>
+      </div>
+
+      <!-- Answers to what clients usually ask. A question with no answer stays hidden, so you can
+           fill in just the ones you want. Fill in, then delete the word hidden. -->
+      <div class="block" id="questions" hidden>
+        <h2>questions</h2>
+        <details class="faq"><summary>how many changes can I ask for?</summary><p></p></details>
+        <details class="faq"><summary>what if something breaks after delivery?</summary><p></p></details>
+        <details class="faq"><summary>who owns the code?</summary><p></p></details>
+        <details class="faq"><summary>how do I get the finished work?</summary><p></p></details>
+        <details class="faq"><summary>do you need Team Create access?</summary><p></p></details>
+        <details class="faq"><summary>can you show my project in your portfolio?</summary><p></p></details>
+      </div>
+
+      <div class="block">
+        <h2 id="contact-title" tabindex="-1">contact</h2>
+        <p>To commission me, send a short description of what you need, your deadline, and your budget.</p>
+        <!-- A brief clients can copy and fill in, so their first message has what you need. -->
+        <figure class="excerpt brief">
+          <figcaption><span>brief</span><span class="excerpt-copy"><button class="copy" type="button" data-copy-from="brief-text" aria-describedby="brief-note">copy<span class="vh"> the brief template</span></button><span class="copy-note" id="brief-note" aria-live="polite"></span></span></figcaption>
+<pre id="brief-text">what I need:
+deadline:
+budget:
+what I'll provide (models, UI, maps):
+examples or references:</pre>
+        </figure>
+        <!-- The status note can say how many slots are free and when you last updated it, for
+             example: 2 slots · updated 12 Oct. Leave it empty to hide it.
+             Discord, email and GitHub show their icons instead of their names (the names are
+             still read out by screen readers).
+             The roblox, devforum and talent hub rows are hidden until their link has an href. -->
+        <ul class="links">
+          <li><span class="k">status</span><span><span class="status">open for commissions</span><span class="status-note"></span></span></li>
+          <li><span class="k"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-discord"/></svg><span class="vh">discord</span></span><span><button class="copy" type="button" data-copy="venuist" aria-label="venuist, copy" aria-describedby="discord-note">venuist</button><span class="copy-note" id="discord-note" aria-live="polite"></span></span></li>
+          <li><span class="k"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mail"/></svg><span class="vh">email</span></span><a href="mailto:you@example.com">you@example.com</a></li>
+          <li><span class="k"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-github"/></svg><span class="vh">github</span></span><a href="#contact">@venuist</a></li>
+          <li><span class="k">roblox</span><a>profile</a></li>
+          <li><span class="k">devforum</span><a>profile</a></li>
+          <li><span class="k">talent hub</span><a>listing</a></li>
+        </ul>
+        <!-- Put your numeric Discord user ID here, so clients can check they're talking to the real
+             you and not someone copying your name. For example: discord user ID: 123456789012345678
+             Leave it empty to hide it. -->
+        <p class="id-note"></p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="dock" aria-label="Primary">
+    <span class="dock-indicator" aria-hidden="true"></span>
+    <a href="#home">home</a>
+    <a href="#contact">contact</a>
+  </nav>
+
+  <script src="script.js?v=23"></script>
+</body>
+</html>

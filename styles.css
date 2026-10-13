@@ -1,0 +1,901 @@
+:root {
+  --bg: #17151a;
+  --plate: #121015;           /* behind the demos, and the plate under a tile's title */
+  --dock: #1b181e;
+  --text: #efe9e1;
+  --muted: #9b938b;
+  --faint: rgba(239, 233, 225, 0.08);
+  --keyline: rgba(239, 233, 225, 0.12);
+  --accent: #f2c48d;          /* venus amber */
+  --accent-deep: #d98f5c;
+  --white-hot: #fff6e9;
+  --on-accent: #1d1712;
+  --open: #9ad4a5;
+
+  --display: "Unbounded", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  /* How far in from the edge the name sits: in line with the content on narrow screens, and
+     tucked into the corner, 40px in, on wide ones. */
+  --corner: clamp(16px, (100% - 1008px) / 2, 40px);
+
+  /* The frames of the dither that things develop through (see "developing" near the bottom).
+     Each is an 8px tile of 2px squares, filled in the order of an ordered (Bayer) dither: frame 2
+     shows 2 squares in 16, frame 4 shows 4, and so on, evenly spread at every step. */
+  --dither-0: linear-gradient(transparent, transparent);
+  --dither-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM4 4h2v2h-2z'/%3E%3C/svg%3E");
+  --dither-4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM4 0h2v2h-2zM0 4h2v2h-2zM4 4h2v2h-2z'/%3E%3C/svg%3E");
+  --dither-6: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM4 0h2v2h-2zM2 2h2v2h-2zM0 4h2v2h-2zM4 4h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+  --dither-8: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM4 0h2v2h-2zM2 2h2v2h-2zM6 2h2v2h-2zM0 4h2v2h-2zM4 4h2v2h-2zM2 6h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+  --dither-10: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM2 0h2v2h-2zM4 0h2v2h-2zM2 2h2v2h-2zM6 2h2v2h-2zM0 4h2v2h-2zM4 4h2v2h-2zM6 4h2v2h-2zM2 6h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+  --dither-12: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM2 0h2v2h-2zM4 0h2v2h-2zM6 0h2v2h-2zM2 2h2v2h-2zM6 2h2v2h-2zM0 4h2v2h-2zM2 4h2v2h-2zM4 4h2v2h-2zM6 4h2v2h-2zM2 6h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+  --dither-14: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 0h2v2h-2zM2 0h2v2h-2zM4 0h2v2h-2zM6 0h2v2h-2zM0 2h2v2h-2zM2 2h2v2h-2zM6 2h2v2h-2zM0 4h2v2h-2zM2 4h2v2h-2zM4 4h2v2h-2zM6 4h2v2h-2zM2 6h2v2h-2zM4 6h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+
+  /* Frames 4, 8 and 12 again, in the plate's colour: the dithered top edge of the tiles' title
+     plates. */
+  --edge-4: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath fill='%23121015' d='M0 0h2v2h-2zM4 0h2v2h-2zM0 4h2v2h-2zM4 4h2v2h-2z'/%3E%3C/svg%3E");
+  --edge-8: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath fill='%23121015' d='M0 0h2v2h-2zM4 0h2v2h-2zM2 2h2v2h-2zM6 2h2v2h-2zM0 4h2v2h-2zM4 4h2v2h-2zM2 6h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+  --edge-12: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath fill='%23121015' d='M0 0h2v2h-2zM2 0h2v2h-2zM4 0h2v2h-2zM6 0h2v2h-2zM2 2h2v2h-2zM6 2h2v2h-2zM0 4h2v2h-2zM2 4h2v2h-2zM4 4h2v2h-2zM6 4h2v2h-2zM2 6h2v2h-2zM6 6h2v2h-2z'/%3E%3C/svg%3E");
+}
+
+* { box-sizing: border-box; }
+
+/* Anything hidden stays hidden, even if a rule below gives it a display. The closed write-ups are
+   the exception: hidden="until-found" keeps them searchable with Ctrl+F, so the browser has to be
+   left to show them when they're found. */
+[hidden]:not([hidden="until-found" i]) { display: none !important; }
+
+/* Read out by screen readers, but not shown. */
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html {
+  background: #0f0e11;
+  overflow-x: clip;              /* the tiles sliding off the side when a project opens don't widen the page */
+  scroll-padding-bottom: 96px;   /* things scrolled to (by Tab, say) stop above the dock, not under it */
+  overflow-anchor: none;         /* script.js keeps the page steady itself when a write-up opens or closes */
+}
+
+/* At least as tall as the screen, so its background reaches the bottom even when the page is shorter. */
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;           /* on phones, the visible height, which changes as the browser bars slide in and out */
+  color: var(--text);
+  font: 14px/1.7 var(--mono);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- background ---------- */
+
+.clouds {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  image-rendering: pixelated;   /* drawn at 1px per CSS px; keeps the dots square on hi-dpi screens */
+}
+
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* The logos and the envelope. They take the colour of the text around them. */
+.icon { display: inline-block; width: 16px; height: 16px; flex: none; fill: currentColor; }
+
+a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: rgba(242, 196, 141, 0.45);
+  text-underline-offset: 3px;
+  transition: color .2s, text-decoration-color .2s;
+}
+a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+::selection { background: var(--accent); color: var(--on-accent); }
+
+.wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 56px 16px 120px;     /* the bottom keeps the last of the page clear of the dock */
+}
+
+/* ---------- masthead ---------- */
+/* The name sits in the top-left corner. */
+
+.masthead {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px var(--corner) 0;
+}
+
+.name {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  margin: 0;
+  font: 600 clamp(2rem, 7vw, 2.75rem)/1 var(--display);
+  letter-spacing: -0.03em;
+  color: #fff6e9;
+  text-shadow:
+    0 0 2px rgba(255, 236, 200, 0.9),
+    0 0 10px rgba(255, 190, 110, 0.5);
+  animation: rise 1.4s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+/* The heat glow: an orange copy of the name behind it, blurred and run through the heat-haze filter. */
+.name::before {
+  content: attr(data-text);
+  content: attr(data-text) / "";   /* decoration: screen readers read the name once */
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: #ffae57;
+  text-shadow:
+    0 0 6px #ff9b3d,
+    0 0 18px #ff6a1a,
+    0 0 36px rgba(255, 70, 0, 0.7),
+    0 0 72px rgba(255, 40, 0, 0.35);
+  filter: url(#heat-haze);
+  animation: simmer 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ---------- content blocks ---------- */
+
+.block + .block { margin-top: 48px; }
+
+.block h2 {
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--faint);
+  font: 400 13px/1 var(--mono);
+  color: var(--muted);
+}
+
+.block p { margin: 0; max-width: 62ch; }
+.block p + p { margin-top: 1em; }
+
+/* ---------- project tiles ---------- */
+/* A tiled grid: the first project big on the left, the other two stacked beside it (on phones, the
+   big one across the top and the other two side by side under it). Each tile is all picture, with
+   its number in a chip at the top and its title on a dark plate along the bottom, whose top edge
+   breaks up into the dither.
+   Each tile is one button: the title's button is stretched over the whole tile, and opens the
+   project's write-up. script.js adds .is-lit while the mouse is over a tile or it has keyboard
+   focus, and .is-open while its write-up is showing. A lit tile heats up: the rule under its
+   chip burns across in steps, its title goes white-hot, its demo plays, and script.js warms the
+   cloud dots around it. */
+
+.projects {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.projects .block + .block { margin-top: 0; }
+.projects p { font-size: 13px; }
+
+.project {
+  position: relative;
+  isolation: isolate;            /* the demo's layers (below) stack inside the tile */
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  grid-template-areas: "label" "." "head" "about";
+  aspect-ratio: 4 / 3;
+}
+.project:first-child { grid-row: span 2; aspect-ratio: auto; }
+.project .demo { position: absolute; inset: 0; aspect-ratio: auto; }   /* the tiles only, not the write-up's player */
+
+.project .card-label {
+  position: relative;
+  grid-area: label;
+  justify-self: start;
+  margin: 12px 0 0 12px;
+  padding: 5px 8px 6px;
+  border: 0;
+  background: rgba(18, 16, 21, 0.86);
+  font: 400 12px/1 var(--mono);
+  color: var(--muted);
+  transition: color .3s;
+}
+.card-topic::before { content: "·"; content: "·" / ""; margin: 0 1ch; }
+/* The rule under the chip heats up like a filament, left to right, in eight steps. */
+.card-label::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent) 60%, var(--white-hot));
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: opacity .6s, transform 0s .6s;
+}
+
+.project .card-head {
+  grid-area: head;
+  margin: 0;
+  padding: 34px 16px 14px;
+  border: 0;
+  background:
+    var(--edge-4) 0 0 / 8px 8px repeat-x,
+    var(--edge-8) 0 8px / 8px 8px repeat-x,
+    var(--edge-12) 0 16px / 8px 8px repeat-x,
+    linear-gradient(var(--plate), var(--plate)) 0 24px / 100% 100% no-repeat;
+  font: 600 1rem/1.25 var(--display);
+  letter-spacing: -0.01em;
+  color: #fff4e2;
+  transition: color .4s;
+}
+.project:first-child .card-head { padding: 36px 20px 8px; font-size: 1.375rem; }
+.card-head::after {
+  content: "→";
+  content: "→" / "";             /* decoration only, so screen readers skip it */
+  display: inline-block;
+  margin-left: .6ch;
+  color: var(--muted);
+  transition: color .3s, transform .24s steps(4, end);
+}
+
+.card-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.card-open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;                    /* over the demo too, so a click anywhere on the tile opens it */
+}
+
+.project .card-about {
+  grid-area: about;
+  max-width: none;
+  padding: 0 20px 18px;
+  background: var(--plate);
+  color: var(--muted);
+  font-size: 13px;
+}
+/* The small tiles keep to their titles, so the picture has the room. */
+.project:not(:first-child) .card-about { display: none; }
+
+.project:is(.is-lit, .is-open) .card-label { color: var(--accent); }
+.project:is(.is-lit, .is-open) .card-label::after {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0s, transform .4s steps(8, end);
+}
+.project:is(.is-lit, .is-open) .card-head { color: var(--white-hot); }
+.project.is-lit .card-head::after { color: var(--accent); transform: translateX(4px); }
+/* An open tile's arrow turns to point down. */
+.project.is-open .card-head::after { color: var(--accent); transform: rotate(90deg); }
+
+/* Keyboard focus gets a ring round the whole tile. */
+.card-open:focus-visible { outline: none; }
+.card-open:focus-visible::after { outline: 1px solid var(--accent); outline-offset: -1px; }   /* just inside the tile's edge */
+
+/* ---------- demos ---------- */
+/* The picture on each tile, and the 16:9 player in each write-up. On a tile it's a still frame,
+   with a short muted clip under it. While the clip plays, the still dissolves away through the
+   dither, and when it stops, the still develops back in over it.
+   With a mouse, the clip plays while the tile's lit (hovered, or focused from the keyboard), and
+   the still sits a little cold and grey until then. On a touch screen (or with reduced motion
+   on), a play button in the tile's corner starts and stops it instead.
+   The layers are stacked under the tile's text and its button (z-index -1), so the title can sit
+   over the picture. */
+
+.demo {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+.demo video,
+.demo .still {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  object-fit: cover;
+}
+.demo video { background: var(--plate); }
+
+/* A hairline round the edge, drawn inside, over the picture. */
+.demo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  box-shadow: inset 0 0 0 1px var(--keyline);
+  pointer-events: none;
+  transition: box-shadow .3s steps(3, end);
+}
+.project:is(.is-lit, .is-open) .demo::after { box-shadow: inset 0 0 0 1px rgba(242, 196, 141, 0.35); }
+
+.project .still {
+  -webkit-mask-size: 8px 8px;
+  mask-size: 8px 8px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  animation: develop .3s steps(1, end) backwards;
+}
+.project .demo.is-playing .still {
+  animation: undevelop .24s steps(1, end) forwards;
+  visibility: hidden;            /* gone for good once it's dissolved, and at once with reduced motion */
+  transition: visibility 0s .24s;
+}
+
+/* Cold until lit: with a mouse, the stills sit grey and dim behind a faint screen of lines, and
+   come up to full colour when the tile heats up. */
+html.js:not(.tap) .project .still {
+  filter: grayscale(.75) brightness(.78) contrast(1.08);
+  transition: filter .3s steps(3, end), visibility 0s;
+}
+html.js:not(.tap) .project .demo.is-playing .still { transition: filter .3s steps(3, end), visibility 0s .24s; }
+html.js:not(.tap) .project:is(.is-lit, .is-open) .still { filter: none; }
+html.js:not(.tap) .project .demo::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Cpath fill='%23121015' fill-opacity='.4' d='M0 2h3v1H0zM2 0h1v2H2z'/%3E%3C/svg%3E");
+}
+html.js:not(.tap) .project:is(.is-lit, .is-open) .demo::after { background-image: none; }
+
+/* The tag in the corner: "demo" until it plays, "loading" while the clip's on its way. */
+html.js .project .demo::before {
+  content: "demo";
+  content: "demo" / "";
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  padding: 4px 7px 4px 16px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='7'%3E%3Cpath fill='%239b938b' d='M0 0h1v7H0zM1 1h1v5H1zM2 2h1v3H2zM3 3h1v1H3z'/%3E%3C/svg%3E") 7px 50% / 4px 7px no-repeat,
+    rgba(18, 16, 21, 0.86);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+}
+html.js .project .demo.is-playing::before { visibility: hidden; }
+html.js .project .demo.is-loading::before {
+  content: "loading";
+  content: "loading" / "";
+  visibility: visible;
+  padding-left: 7px;
+  background: rgba(18, 16, 21, 0.86);
+  color: var(--accent);
+  animation: blink 1s steps(2, jump-none) infinite;
+}
+html.js .project .demo.no-clip::before {
+  content: "clip unavailable";
+  content: "clip unavailable" / "";
+  padding-left: 7px;
+  background: rgba(18, 16, 21, 0.86);
+}
+html.tap .project .demo:not(.is-loading, .no-clip)::before { content: none; }   /* the play button says it instead */
+
+/* The play button, on touch screens: a badge in the tile's top corner with a pixel play sign in
+   it, so a tap on the title still opens the project. While it plays, the sign turns to a pause sign. */
+.demo-play { display: none; }
+html.tap .project .demo-play {
+  display: block;
+  position: absolute;
+  inset: 10px 10px auto auto;
+  z-index: 5;                    /* over the tile's own button, so a tap on it plays the clip */
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+html.tap .demo-play::before,
+html.tap .demo-play::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+html.tap .demo-play::before {
+  width: 44px;
+  height: 44px;
+  translate: -50% -50%;
+  background: rgba(18, 16, 21, 0.86);
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+html.tap .demo-play::after {
+  width: 12px;
+  height: 14px;
+  translate: -40% -50%;
+  background: var(--accent);
+  clip-path: polygon(0 0, 2px 0, 2px 1px, 4px 1px, 4px 2px, 6px 2px, 6px 3px, 8px 3px, 8px 4px, 10px 4px, 10px 5px, 12px 5px, 12px 9px, 10px 9px, 10px 10px, 8px 10px, 8px 11px, 6px 11px, 6px 12px, 4px 12px, 4px 13px, 2px 13px, 2px 14px, 0 14px);
+}
+html.tap .demo-play[aria-pressed="true"]::after {
+  width: 10px;
+  height: 10px;
+  translate: -50% -50%;
+  clip-path: none;
+  background: linear-gradient(90deg, var(--accent) 3px, transparent 3px 7px, var(--accent) 7px);
+}
+html.tap .demo.is-loading .demo-play::after { animation: blink 1s steps(2, jump-none) infinite; }
+html.tap .demo-play:focus-visible { outline: none; }
+html.tap .demo-play:focus-visible::before { outline: 1px solid var(--accent); outline-offset: 2px; clip-path: none; }
+
+/* The player in a write-up: the whole clip, with its controls and sound. */
+.demo-full { isolation: isolate; }
+.demo-full video { object-fit: contain; background: #000; }
+.demo-full::after { box-shadow: inset 0 0 0 1px rgba(242, 196, 141, 0.22); }
+
+/* ---------- opening a project ---------- */
+/* Opening a tile turns the page into the project's page. The tiles and the write-up share one
+   grid cell: the other tiles slide out of the way, away from the opened one, breaking up into the
+   dither as they go, while the write-up develops in, and the tile's picture and title fly into
+   place in it (script.js, "flights" and "scatter"). While it's open the tiles are hidden. Closing
+   runs it all backwards: the picture and title fly home, and the tiles slide back in and develop
+   around them. script.js adds .tiles-leaving, .is-reading and .tiles-coming to #home, and
+   .is-away to the tile whose picture and title are off flying. */
+
+html.js #home { position: relative; }   /* the flights are placed from here */
+html.js #home.is-active { display: grid; grid-template-columns: minmax(0, 1fr); }
+html.js #home > :is(.projects, .details) { grid-area: 1 / 1; align-self: start; }
+
+#home.tiles-leaving .project { pointer-events: none; }
+#home.is-reading .projects { visibility: hidden; height: 0; }
+
+/* The tile's own plate and label stay over its picture as it flies off, and as it lands. */
+.project.is-away { z-index: 7; }
+.project.is-away :is(.demo, .card-title) { visibility: hidden; }
+
+/* The write-up's player and title are hidden while their flights are on the way, and they don't
+   develop in like the rest: they're already there when they land. */
+.is-flown { opacity: 0; pointer-events: none; }
+.detail.is-developing .dev:is(.is-flown, .is-landed) { animation: none; }
+
+.flyer {
+  position: absolute;
+  z-index: 6;
+  margin: 0;
+  pointer-events: none;
+  -webkit-mask-size: 8px 8px;
+  mask-size: 8px 8px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+}
+/* The filter does nothing you can see: it keeps the flying clip drawn with the rest of the page.
+   Without it Chrome hands a playing clip to the screen's video overlay, and rebuilds that overlay
+   every time the clip changes size, which holds up a frame partway through the flight. */
+.flyer-demo { overflow: hidden; background: #000; filter: brightness(1); }
+.flyer-media { position: absolute; }
+.flyer-media > * { display: block; width: 100%; height: 100%; border: 0; object-fit: fill; }   /* the box is already the picture's shape */
+.flyer-face { z-index: 8; transform-origin: 0 0; white-space: normal; overflow-wrap: break-word; }
+
+/* ---------- project write-ups ---------- */
+/* One write-up shows at a time, in the tiles' place: no frame round it, just the page. Its way
+   back is at the top, and its title is the page's heading. Opening another one (from the address,
+   say) swaps it in place. script.js adds .is-open and .is-closing to .details as it goes. */
+
+.details { position: relative; }
+/* Until script.js has hidden the closed write-ups, none of them show, so they never flash up. */
+.js .details:not(.is-ready) { display: none; }
+.detail { scroll-margin-top: 24px; }
+.js .detail { scroll-margin-top: 40vh; }
+/* NEVER set display on .detail itself: browsers without until-found rely on [hidden]. */
+
+.details.is-open .details-frame {
+  padding: 8px;                  /* room for focus rings, inside the clip that's there for swapping write-ups */
+  margin: -8px;
+  overflow: hidden;
+  overflow: clip;
+}
+
+/* Without script.js all three write-ups show under the tiles, one after another. */
+html:not(.js) .details { margin-top: 56px; }
+html:not(.js) .detail + .detail { margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--faint); }
+
+/* ---------- inside a write-up ---------- */
+
+.detail p { margin: 0; }
+
+.detail-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--accent);
+}
+.detail-close {
+  order: -1;                     /* "← all projects" above the project's number */
+  display: inline-flex;
+  gap: 1ch;
+  align-items: baseline;
+  padding: 4px 8px 4px 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.detail-close:hover { color: var(--text); }
+.detail-close .arrow { display: inline-block; transition: translate .2s steps(2, end); }
+.detail-close:hover .arrow { translate: -4px 0; }
+.detail-close kbd { font: inherit; color: rgba(155, 147, 139, 0.85); }
+/* No keyboard on touch screens, so no "esc" hint, and a bigger target for a finger. */
+@media (hover: none) { .detail-close kbd { display: none; } }
+@media (pointer: coarse) { .detail-close { padding: 16px 16px 16px 0; margin-block: -16px; } }   /* 44px tall */
+html:not(.js) .detail-close { display: none; }
+
+.detail-title {
+  margin: 14px 0 0;
+  font: 600 clamp(1.75rem, 5vw, 2.625rem)/1.1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--white-hot);
+}
+/* script.js moves focus here when a write-up opens; the ring only shows for keyboard users. */
+.detail-title:focus { outline: none; }
+.detail-title:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+
+/* The clip wide, with the words beside it. */
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 36px;
+  margin-top: 26px;
+  align-items: start;
+}
+.detail-figure { margin: 0; }
+.detail-figure figcaption { margin-top: 10px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.detail-figure .credit a { color: var(--muted); }
+.detail-figure .credit a:hover { color: var(--accent); }
+.detail-copy > p { font-size: 13px; max-width: 62ch; }
+
+/* Facts about the project, one per row. A row with nothing filled in is hidden. */
+.meta { margin: 16px 0 0; font-size: 12px; line-height: 1.5; }
+.meta div {
+  display: grid;
+  grid-template-columns: 11ch 1fr;
+  gap: 1ch;
+  padding: 5px 0;
+  border-top: 1px solid var(--faint);
+}
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; }
+.meta div:has(> dd:empty) { display: none; }
+
+.detail > h3 {
+  margin: 26px 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--faint);
+  font: 400 13px/1 var(--mono);
+  color: var(--muted);
+}
+
+.highlights { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.highlights li { position: relative; padding-left: 18px; }
+.highlights li + li { margin-top: 6px; }
+/* A square amber dot, like one of the clouds' dots heated up. */
+.highlights li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: calc(.85em - 2px);        /* centred on the first line */
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+}
+
+/* ---------- the brief ---------- */
+/* A short template clients can copy, on the contact view. */
+
+.excerpt { margin: 28px 0 0; }
+
+.excerpt figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 1ch;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--faint);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--muted);
+}
+.excerpt-copy { margin-left: auto; font-size: 12px; }
+.excerpt-copy .copy-note { margin-left: 1ch; }
+html:not(.js) .excerpt-copy { display: none; }
+
+.excerpt pre {
+  margin: 0;
+  padding: 14px 16px;
+  white-space: pre-wrap;         /* wraps on narrow screens instead of scrolling sideways */
+  background: var(--plate);
+  border-bottom: 1px solid var(--faint);
+  font: 12.5px/1.65 var(--mono);
+  color: #dcd5cc;
+}
+
+/* ---------- the foot of a write-up ---------- */
+
+.detail-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-top: 28px;
+}
+.proof { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; }
+.proof a[href]::after { content: "↗"; content: "↗" / ""; margin-left: .5ch; }
+/* A link with no address yet is hidden, and so is the row if none of them have one. */
+.proof a:not([href]),
+.proof:not(:has(a[href])) { display: none; }
+/* The link to the project's code, with the GitHub logo in front. */
+.proof .repo { display: inline-flex; align-items: center; gap: .8ch; }
+.proof .repo .icon { width: 14px; height: 14px; }
+
+/* The way to commission: a flat amber button with stepped pixel corners. */
+.cta {
+  display: inline-block;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+  transition: background-color .2s;
+}
+.cta::after { content: "→"; content: "→" / ""; margin-left: 1ch; }
+.cta:hover { color: var(--on-accent); background: #f7d3a6; }
+.details :focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+
+/* The corners clip anything drawn outside, so its focus ring is drawn inside. (After the rule
+   above, which would otherwise move it outside, in a write-up.) */
+.cta:focus-visible { outline: 2px solid var(--on-accent); outline-offset: -5px; }
+
+/* ---------- developing ---------- */
+/* Things appear the way a dithered image does: through a few frames of an ordered dither, a
+   handful of squares, then more, then all of it. When a write-up opens, script.js marks its parts
+   (.dev) and gives each a delay (--d) by how far it is from the top of the write-up, in line with
+   the opened tile, so the nearest parts come first. Text that develops starts amber and cools to
+   its own colour. On a swap, the old write-up undevelops first. The demos' stills develop in the
+   same way (see "demos"). The tiles break up and come back through a finer dither of their own
+   (script.js, "scatter"). */
+
+.dev,
+.js #contact.is-active .block {
+  -webkit-mask-size: 8px 8px;
+  mask-size: 8px 8px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  mask-clip: no-clip;            /* focus rings aren't cut off at the edges */
+}
+.detail.is-developing .dev { animation: develop .24s steps(1, end) var(--d, 0s) backwards; }
+.detail.is-developing :is(.detail-title, .detail-copy, .highlights).dev {
+  animation:
+    develop .24s steps(1, end) var(--d, 0s) backwards,
+    cool .7s ease-out var(--d, 0s) backwards;
+}
+.detail.is-leaving .dev { animation: undevelop .12s steps(1, end) forwards; }
+
+/* Switching views develops the stills and the contact blocks in, one after another. */
+.view.is-active .project:nth-child(2 of .project) .demo:not(.is-playing) .still { animation-delay: .07s; }
+.view.is-active .project:nth-child(3 of .project) .demo:not(.is-playing) .still { animation-delay: .14s; }
+#contact.is-active .block { animation: develop .36s steps(1, end) backwards; }
+#contact.is-active .block:nth-child(2) { animation-delay: .07s; }
+#contact.is-active .block:nth-child(n+3) { animation-delay: .14s; }
+
+/* ---------- lists ---------- */
+
+.tags, .links { list-style: none; margin: 0; padding: 0; }
+
+/* The stack, as words with dots between them. */
+.tags { display: flex; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+.tags li + li::before { content: "·"; content: "·" / ""; margin: 0 1ch; color: rgba(155, 147, 139, 0.5); }
+
+.links { margin-top: 20px; }
+.links li {
+  display: grid;
+  grid-template-columns: 10ch 1fr;
+  align-items: center;
+  padding: 6px 0;
+}
+.links .k { display: flex; align-items: center; color: var(--muted); transition: color .2s; }
+.links li:hover .k:has(.icon) { color: var(--accent); }
+.links :focus-visible { outline: 1px solid rgba(242, 196, 141, 0.7); outline-offset: 3px; }
+/* A profile row whose link has no address yet is hidden. */
+.links li:has(> a:not([href])) { display: none; }
+
+/* A discord name isn't a link, so clicking it copies it (script.js). It looks like the links beside it. */
+.copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(242, 196, 141, 0.45);
+  text-underline-offset: 3px;
+  user-select: text;
+  cursor: pointer;
+  transition: color .2s, text-decoration-color .2s;
+}
+.copy:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.copy-note { margin-left: 1.5ch; font-size: 12px; color: var(--muted); transition: color .2s; }
+.copy-note.is-done { color: var(--open); }
+/* The Discord note is empty until something's copied, so the live region only speaks then. */
+#discord-note:empty::before { content: "copy"; content: "copy" / ""; }
+html:not(.js) .copy { cursor: text; text-decoration: none; }
+html:not(.js) .copy-note { display: none; }
+
+/* Open for commissions: a small green square, like a lit pixel. */
+.status { display: inline-flex; align-items: center; gap: 10px; }
+.status::before { content: ""; width: 6px; height: 6px; background: var(--open); }
+.status-note::before { content: "·"; content: "·" / ""; margin: 0 1ch; color: var(--muted); }
+/* Left empty, the status note and the Discord ID line are hidden. */
+.status-note:empty,
+.id-note:empty { display: none; }
+.id-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
+
+/* The commission button lands here, with focus; the ring only shows for keyboard users. */
+#contact-title:focus { outline: none; }
+#contact-title:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+
+/* The hidden contact sections (see index.html). Anything left empty in them stays hidden. */
+.steps { margin: 0; padding-left: 3ch; }
+.steps li:empty { display: none; }
+.vouches { list-style: none; margin: 0; padding: 0; }
+.vouches li + li { margin-top: 16px; }
+.vouches .who { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.faq { border-top: 1px solid var(--faint); padding: 8px 0; }
+.faq summary { cursor: pointer; }
+.faq p { margin-top: 6px; color: var(--muted); }
+.faq:has(> p:empty) { display: none; }
+
+/* ---------- views (only one shown when JS is on) ---------- */
+
+.view + .view { margin-top: 64px; }
+.js .view { display: none; margin-top: 0; }
+.js .view.is-active { display: block; }
+/* script.js keeps the page at the top when it switches views. Without this, opening the site
+   with #home or #contact in the address would scroll down past the name to that section. */
+.js .view { scroll-margin-top: 100vh; }
+
+/* ---------- dock ---------- */
+
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 92px;
+  padding: 4px;
+  border-radius: 4px;
+  background: var(--dock);
+  border: 1px solid rgba(239, 233, 225, 0.1);
+  z-index: 10;
+}
+
+.dock a {
+  position: relative;
+  z-index: 1;
+  padding: 11px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color .3s;
+}
+.dock a:hover { color: var(--text); }
+.dock a[aria-current="page"] { color: var(--on-accent); font-weight: 500; }
+.dock a:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+.dock-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 92px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform .45s cubic-bezier(.3, .8, .2, 1);
+}
+html:not(.js) .dock-indicator { display: none; }
+
+/* ---------- narrow screens ---------- */
+
+@media (max-width: 720px) {
+  .wrap { padding-top: 40px; }
+
+  /* The big tile across the top, the other two side by side under it. */
+  .projects { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .project:first-child { grid-column: 1 / -1; grid-row: auto; aspect-ratio: 1 / 1; }
+  .project:not(:first-child) { aspect-ratio: 3 / 4; }
+  .project:not(:first-child) .card-topic { display: none; }   /* just the number, clear of the play button */
+  .project:not(:first-child) .card-head::after { display: none; }   /* too narrow: it'd wrap onto a line of its own */
+  .project .card-head { padding: 30px 12px 12px; font-size: .9375rem; }
+  .project:first-child .card-head { padding: 34px 16px 8px; font-size: 1.25rem; }
+  .project .card-about { padding: 0 16px 16px; }
+
+  /* A write-up's clip goes above its words. */
+  .detail-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 20px; }
+  .detail-foot { flex-direction: column; align-items: stretch; }
+  .cta { text-align: center; }
+}
+
+/* ---------- motion ---------- */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes simmer {
+  0%, 100% { opacity: 0.8; }
+  50%      { opacity: 1; }
+}
+
+@keyframes blink { 50% { opacity: .35; } }
+
+/* The dither, frame by frame. Ends with no mask at all, so nothing is left masked afterwards. */
+@keyframes develop {
+  0%    { -webkit-mask-image: var(--dither-0);  mask-image: var(--dither-0); }
+  12.5% { -webkit-mask-image: var(--dither-2);  mask-image: var(--dither-2); }
+  25%   { -webkit-mask-image: var(--dither-4);  mask-image: var(--dither-4); }
+  37.5% { -webkit-mask-image: var(--dither-6);  mask-image: var(--dither-6); }
+  50%   { -webkit-mask-image: var(--dither-8);  mask-image: var(--dither-8); }
+  62.5% { -webkit-mask-image: var(--dither-10); mask-image: var(--dither-10); }
+  75%   { -webkit-mask-image: var(--dither-12); mask-image: var(--dither-12); }
+  87.5% { -webkit-mask-image: var(--dither-14); mask-image: var(--dither-14); }
+  100%  { -webkit-mask-image: none;             mask-image: none; }
+}
+@keyframes undevelop {
+  0%    { -webkit-mask-image: var(--dither-14); mask-image: var(--dither-14); }
+  14%   { -webkit-mask-image: var(--dither-12); mask-image: var(--dither-12); }
+  28%   { -webkit-mask-image: var(--dither-10); mask-image: var(--dither-10); }
+  42%   { -webkit-mask-image: var(--dither-8);  mask-image: var(--dither-8); }
+  56%   { -webkit-mask-image: var(--dither-6);  mask-image: var(--dither-6); }
+  70%   { -webkit-mask-image: var(--dither-4);  mask-image: var(--dither-4); }
+  84%   { -webkit-mask-image: var(--dither-2);  mask-image: var(--dither-2); }
+  100%  { -webkit-mask-image: var(--dither-0);  mask-image: var(--dither-0); }
+}
+
+/* Text that's just developed starts amber, and cools to its own colour. */
+@keyframes cool { from { color: var(--accent); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* script.js stills the heat haze. Without it, the haze is left off, since it would waver. */
+  html:not(.js) .name::before { filter: none; }
+}
