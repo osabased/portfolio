@@ -52,10 +52,13 @@ const views = [...document.querySelectorAll('.view')];
 const navLinks = [...document.querySelectorAll('.dock a')];
 const dock = document.querySelector('.dock');
 const aliases = { work: 'home', about: 'contact' };   // old links still land somewhere sensible
+const siteName = document.title;
+let viewTitle = siteName;               // the tab's title for the view showing, until a project is open
 
 function show(id) {
   id = aliases[id] || id;
   const index = Math.max(0, views.findIndex(v => v.id === id));   // anything else, a project's address included, is home
+  viewTitle = views[index].id === 'home' ? siteName : `${views[index].id} · ${siteName}`;
   views.forEach((v, i) => v.classList.toggle('is-active', i === index));
   navLinks.forEach((a, i) => {
     if (i === index) a.setAttribute('aria-current', 'page');
@@ -619,7 +622,12 @@ function markOpen(card) {
     other.open = other === card;
     other.button.setAttribute('aria-expanded', String(other.open));
   }
+  updateTitle();
   relight();
+}
+
+function updateTitle() {
+  document.title = openCard ? `${openCard.cardTitle.textContent} · ${siteName}` : viewTitle;
 }
 
 // Where a write-up develops in from: the top of the panel, in line with the middle of the open card.
@@ -1311,6 +1319,7 @@ function route() {
   closeOnBack = {};
   const id = location.hash.slice(1);
   show(id);
+  updateTitle();
   if (!homeShown()) {                        // the contact view
     hovered = focused = null;
     closeDetail({ instant: true });
@@ -1330,6 +1339,7 @@ window.addEventListener('hashchange', route);
 // ---------- start ----------
 
 relight();
+updateTitle();
 // Opened at a project's address: open it straight away, without moving the focus.
 const linked = cardById(location.hash.slice(1));
 if (linked) openDetail(linked, { instant: true, focus: false });
