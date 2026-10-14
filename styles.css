@@ -715,7 +715,7 @@ html:not(.js) .excerpt-copy { display: none; }
   mask-clip: no-clip;            /* focus rings aren't cut off at the edges */
 }
 .detail.is-developing .dev { animation: develop .24s steps(1, end) var(--d, 0s) backwards; }
-.detail.is-developing :is(.detail-title, .detail-copy, .highlights).dev {
+.detail.is-developing :is(.detail-title, .detail-copy, .highlights).dev:not(.is-flown, .is-landed) {
   animation:
     develop .24s steps(1, end) var(--d, 0s) backwards,
     cool .7s ease-out var(--d, 0s) backwards;
