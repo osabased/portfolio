@@ -544,11 +544,17 @@ document.fonts.ready.then(() => {
   whenIdle(next);
 });
 
-// Keeps the address on the open project, without adding to the history or jumping the page to
-// it. So Back leaves the page as usual, and Back from the contact view comes back to the
-// project that was open.
+// Keeps the address on the open project without jumping the page to it.
 function setHash(hash) {
   try { history.replaceState(history.state, '', hash || location.pathname + location.search); } catch {}
+}
+
+// Opening a write-up from the page adds a history entry, marked with its id, so Back closes it
+// and Back from the contact view comes back to it. An address that was followed to get here is
+// already in the history.
+function setProjectHash(id, push) {
+  if (!push || location.hash === '#' + id) return setHash('#' + id);
+  try { history.pushState({ project: id }, '', '#' + id); } catch { setHash('#' + id); }
 }
 
 // The panel's height right now. Stops it growing or shrinking, if it was, so it can start again
@@ -1167,9 +1173,10 @@ async function closeInPlace(card, run, fast, onPage, returnFocus) {
 // instant: no animation (find-in-page and a project's address use this, and reduced motion always does).
 // focus: move the keyboard focus to the write-up's title, so a screen reader reads it out.
 // scroll: bring the write-up into view.
-async function openDetail(card, { instant = false, focus = true, scroll = true } = {}) {
+// push: add a history entry for it (a click on the card, not a followed address).
+async function openDetail(card, { instant = false, focus = true, scroll = true, push = false } = {}) {
   if (!homeShown()) return;            // the cards are switched away from
-  setHash('#' + card.panel.id);
+  setProjectHash(card.panel.id, push);
   const shown = shownCard();
   const closing = details.classList.contains('is-closing');
   if (openCard === card && shown === card && !closing) {
@@ -1206,6 +1213,12 @@ async function openDetail(card, { instant = false, focus = true, scroll = true }
 async function closeDetail({ instant = false, returnFocus = false } = {}) {
   const card = openCard;
   if (!card) return;
+  // Its entry was added by opening it, so close it by going back, and route() does the closing.
+  if (location.hash === '#' + card.panel.id && history.state?.project === card.panel.id) {
+    closeOnBack = { instant, returnFocus };
+    history.back();
+    return;
+  }
   const run = ++generation;
   const fast = instant || motionPref.matches;
   reading = false;
@@ -1233,7 +1246,7 @@ projectList.addEventListener('click', e => {
   const card = cards.find(card => card.button === e.target.closest('.card-open'));
   if (!card) return;
   if (openCard === card) closeDetail();
-  else openDetail(card);
+  else openDetail(card, { push: true });
 });
 
 details.addEventListener('click', e => {
@@ -1284,6 +1297,8 @@ for (const button of document.querySelectorAll('.copy')) {
 // The link that changed the address, if one did. The focus can't say: a link to a part of the
 // page that can't take focus (like #contact) takes the focus off the link before `hashchange`.
 let followed = null;
+// How the write-up that closeDetail() went back to close should close.
+let closeOnBack = {};
 document.addEventListener('click', e => {
   const opensElsewhere = e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey;   // a new tab or window
   followed = opensElsewhere ? null : e.target.closest?.('a[href^="#"]') || null;
@@ -1292,6 +1307,8 @@ document.addEventListener('click', e => {
 function route() {
   const fromHome = !!followed && home.contains(followed);   // a "commission" link, in a write-up
   followed = null;
+  const closing = closeOnBack;
+  closeOnBack = {};
   const id = location.hash.slice(1);
   show(id);
   if (!homeShown()) {                        // the contact view
@@ -1306,7 +1323,7 @@ function route() {
   const target = id ? document.getElementById(id) : null;
   const linked = cardById(id) || (target && cards.find(card => card.panel.contains(target))) || null;
   if (linked) openDetail(linked);
-  else if (openCard) closeDetail();          // home, or no address: close
+  else if (openCard) closeDetail(closing);   // home, or no address: close
 }
 window.addEventListener('hashchange', route);
 
