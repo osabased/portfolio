@@ -469,9 +469,15 @@ html.js #home > :is(.projects, .details) { grid-area: 1 / 1; align-self: start; 
 #home.tiles-leaving .project { pointer-events: none; }
 #home.is-reading .projects { visibility: hidden; height: 0; }
 
-/* The tile's own plate and label stay over its picture as it flies off, and as it lands. */
-.project.is-away { z-index: 7; }
-.project.is-away :is(.demo, .card-title) { visibility: hidden; }
+/* Everything on the tile is off flying. Its words are only see-through, so its button can still
+   take the focus. Nothing on it changes gradually while it's away, so when it's shown again it's
+   already just as the copies that flew home show it. */
+.project.is-away .demo { visibility: hidden; }
+.project.is-away :is(.card-label, .card-head, .card-about) { opacity: 0; }
+.project.is-away,
+.project.is-away *,
+.project.is-away *::before,
+.project.is-away *::after { transition: none; }
 
 /* The write-up's player and title are hidden while their flights are on the way, and they don't
    develop in like the rest: they're already there when they land. */
@@ -495,6 +501,16 @@ html.js #home > :is(.projects, .details) { grid-area: 1 / 1; align-self: start; 
 .flyer-media { position: absolute; }
 .flyer-media > * { display: block; width: 100%; height: 100%; border: 0; object-fit: fill; }   /* the box is already the picture's shape */
 .flyer-face { z-index: 8; transform-origin: 0 0; white-space: normal; overflow-wrap: break-word; }
+/* The plate and labels, over the picture and under the title. script.js copies their ::after
+   (the arrow, the rule under the label) as it is on the piece they're copied from. */
+.flyer-ghost { z-index: 7; }
+.flyer-ghost::after {
+  color: var(--after-color);
+  transform: var(--after-transform);
+  opacity: var(--after-opacity);
+  display: var(--after-display);
+  transition: none;
+}
 
 /* ---------- project write-ups ---------- */
 /* One write-up shows at a time, in the tiles' place: no frame round it, just the page. Its way

@@ -105,6 +105,7 @@ const cards = [...projectList.querySelectorAll('.project')].map(el => {
   return {
     el, button, panel: document.getElementById(id), demo, video, play,
     still: demo.querySelector('.still'), cardTitle: el.querySelector('.card-title'),
+    label: el.querySelector('.card-label'), head: el.querySelector('.card-head'), about: el.querySelector('.card-about'),
     start: parseFloat(video.dataset.start) || 0,   // the second the still was taken at
     lit: false, open: false, playing: false,
     carried: false,   // whether its clip is off flying into a write-up, so it's left playing
@@ -515,6 +516,7 @@ const shownCard = () => cards.find(card => !card.panel.hasAttribute('hidden')) |
 
 for (const card of cards) {
   card.title = card.panel.querySelector('.detail-title');
+  card.pageLabel = card.panel.querySelector('.detail-label');
   card.full = card.panel.querySelector('.demo-full');   // the write-up's player
   card.panel.querySelectorAll(DEV_PARTS).forEach(el => el.classList.add('dev'));   // the pieces that develop in
   card.panel.setAttribute('hidden', 'until-found');
@@ -671,10 +673,11 @@ function backTo(card, gone) {
 }
 
 // ---------- flights ----------
-// A tile opens its write-up in the grid's place, and the tile's picture and title fly
+// A tile opens its write-up in the grid's place, and the tile's picture, title and label fly
 // from the tile into place in the write-up. On the way the picture uncrops, from filling the tile
-// to the whole frame in the player, and the title grows into the write-up's, changing over from
-// one to the other through the dither. Closing flies them home again. What flies is a stand-in
+// to the whole frame in the player, and the title and label grow into the write-up's, changing over
+// from one to the other through the dither. The dark plate under the title rides along with it and
+// breaks up as the title changes over. Closing flies them home again. What flies is a stand-in
 // (a "flyer") over the page, while the real ones at either end are hidden. If the tile's demo is
 // playing, the clip itself flies, still playing, and the write-up's player carries on from the
 // same second once it lands. Going home, the write-up's player flies, as it is. A flight that's
@@ -755,6 +758,41 @@ function facesOf(titles) {
   return faces;
 }
 
+// Copies of whole pieces of a tile or write-up (a plate, a label), each set just like the piece and
+// put over it. A copy's `at` is where its words start, from its own corner. Its ::after (a tile's
+// arrow, or the rule under its label) is copied through --after-* (styles.css). All measured first,
+// then all put in.
+const GHOST_STYLE = [...FACE_STYLE, 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+  'backgroundColor', 'backgroundImage', 'backgroundPosition', 'backgroundSize', 'backgroundRepeat'];
+function ghostsOf(els) {
+  const looks = els.map(el => {
+    const style = getComputedStyle(el), after = getComputedStyle(el, '::after');
+    const r = el.getBoundingClientRect(), words = wordsAt(el);
+    return {
+      el, box: boxOf(el), at: { left: words.left - r.left, top: words.top - r.top },
+      style: GHOST_STYLE.map(name => style[name]), after: [after.color, after.transform, after.opacity, after.display],
+      unshown: [...el.querySelectorAll('*')].map(part => !part.getClientRects().length),   // like a small tile's topic, on a phone
+    };
+  });
+  return looks.map(look => {
+    const ghost = look.el.cloneNode(true);
+    ghost.removeAttribute('id');
+    ghost.classList.remove('is-flown', 'is-landed');   // the piece's own hiding while its copy flies
+    ghost.classList.add('flyer', 'flyer-ghost');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.inert = true;
+    GHOST_STYLE.forEach((name, i) => { ghost.style[name] = look.style[i]; });
+    ['--after-color', '--after-transform', '--after-opacity', '--after-display'].forEach((name, i) => ghost.style.setProperty(name, look.after[i]));
+    ghost.querySelectorAll('*').forEach((part, i) => { if (look.unshown[i]) part.hidden = true; });
+    Object.assign(ghost.style, px(look.box));
+    ghost.querySelector('.card-title')?.style.setProperty('visibility', 'hidden');   // the title flies on its own
+    ghost.box = look.box;
+    ghost.at = look.at;
+    home.append(ghost);
+    return ghost;
+  });
+}
+
 const playingNow = video => !video.paused && !video.ended && video.readyState >= 3;
 
 // A write-up's player or title shows again once its flight's landed. It doesn't develop in like
@@ -769,8 +807,18 @@ function landed(el) {
 // have to be on the page, where they'll be once it's landed. Returns the flight: turn() sends it
 // back the way it came, finish() lands it at once, and `landed` resolves once it's down.
 function fly(card, toTile) {
+  // Hidden first: with its transitions off while it's away (styles.css), the tile's colours are
+  // measured as they'll be when it's shown again, so nothing changes as the copies hand back to it.
+  card.el.classList.add('is-away');
+  card.title.classList.add('is-flown');
+  card.pageLabel.classList.add('is-flown');
+  card.full.classList.add('is-flown');
+
   const tile = boxOf(card.demo), page = boxOf(card.full);
-  const [tileFace, pageFace] = facesOf([card.cardTitle, card.title]);   // measured before anything moves
+  const plated = card.about.getClientRects().length ? [card.head, card.about] : [card.head];   // the small tiles' blurbs aren't shown
+  const ghosts = ghostsOf([...plated, card.label, card.pageLabel]);   // measured before anything moves
+  const [tileLabel, pageLabel] = ghosts.slice(-2), plates = ghosts.slice(0, -2);
+  const [tileFace, pageFace] = facesOf([card.cardTitle, card.title]);
   const player = card.full.querySelector('video');   // none, if it's an embed
   let pic;
   if (!toTile && card.carried) pic = card.video;      // the tile's clip, playing
@@ -800,10 +848,13 @@ function fly(card, toTile) {
   home.append(demo);
   const s = parseFloat(tileFace.style.fontSize) / parseFloat(pageFace.style.fontSize);
   const dx = pageFace.at.left - tileFace.at.left, dy = pageFace.at.top - tileFace.at.top;
-
-  card.el.classList.add('is-away');
-  card.title.classList.add('is-flown');
-  card.full.classList.add('is-flown');
+  const ls = parseFloat(tileLabel.style.fontSize) / parseFloat(pageLabel.style.fontSize);
+  const ldx = pageLabel.box.left + pageLabel.at.left - tileLabel.box.left - tileLabel.at.left;
+  const ldy = pageLabel.box.top + pageLabel.at.top - tileLabel.box.top - tileLabel.at.top;
+  // The labels grow from where their words start. The plates go along under the title without
+  // growing, which would spread them over the write-up as a dark slab.
+  for (const label of [tileLabel, pageLabel]) label.style.transformOrigin = `${label.at.left}px ${label.at.top}px`;
+  const riders = [tileFace, pageFace, ...ghosts];
 
   // Closing plays the same flight backwards. The titles change over in the middle of it, so
   // they do it in the same place both ways.
@@ -816,6 +867,14 @@ function fly(card, toTile) {
     pageFace.animate([{ transform: `translate(${-dx}px, ${-dy}px) scale(${s})` }, { transform: 'none' }], timing),
     tileFace.animate(ditherFrames(true), fade),
     pageFace.animate(ditherFrames(false), fade),
+    tileLabel.animate([{ transform: 'none' }, { transform: `translate(${ldx}px, ${ldy}px) scale(${1 / ls})` }], timing),
+    pageLabel.animate([{ transform: `translate(${-ldx}px, ${-ldy}px) scale(${ls})` }, { transform: 'none' }], timing),
+    tileLabel.animate(ditherFrames(true), fade),
+    pageLabel.animate(ditherFrames(false), fade),
+    ...plates.flatMap(plate => [
+      plate.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px)` }], timing),
+      plate.animate(ditherFrames(true), fade),
+    ]),
   ];
 
   const f = { card, toTile, moving: true, done: false };
@@ -831,8 +890,7 @@ function fly(card, toTile) {
     clearTimeout(timer);
     player?.removeEventListener('playing', settle);
     parked?.cancel();
-    tileFace.remove();
-    pageFace.remove();
+    riders.forEach(rider => rider.remove());
     demo.remove();
     if (from) from.parent.insertBefore(pic, from.next);
     if (pic === player) {
@@ -845,6 +903,7 @@ function fly(card, toTile) {
     }
     card.el.classList.remove('is-away');
     landed(card.title);
+    landed(card.pageLabel);
     landed(card.full);
     if (flight === f) flight = null;
     f.resolve();
@@ -857,15 +916,15 @@ function fly(card, toTile) {
   const arrive = force => {
     if (!f.moving) return;
     f.moving = false;
-    tileFace.remove();
-    pageFace.remove();
+    const dissolving = !force && f.toTile && pic !== card.video;
+    if (!dissolving) riders.forEach(rider => rider.remove());   // else they stay over the picture until it's gone
     if (f.toTile) card.el.classList.remove('is-away');
-    else landed(card.title);
+    else { landed(card.title); landed(card.pageLabel); }
     if (force) settle();
     else if (!f.toTile && pic === card.video && player && !playingNow(player)) {
       player.addEventListener('playing', settle, { once: true });
       timer = setTimeout(settle, 1500);
-    } else if (f.toTile && pic !== card.video) {
+    } else if (dissolving) {
       parked = demo.animate(ditherFrames(true), { duration: 200, fill: 'forwards' });
       parked.finished.then(settle, () => {});
     } else settle();
@@ -888,7 +947,8 @@ function fly(card, toTile) {
 // ---------- scatter ----------
 // The other tiles get out of the way of the opened one: each slides off, straight away from it,
 // and breaks up into the dither as it goes, a little after the one before, the nearest first. The
-// opened tile stays put, and its plate dissolves as its picture and title fly off. Coming back
+// opened tile stays put and breaks up too. Everything on it is off flying by then, so all that does
+// is keep the empty tile out of sight until the tiles are put away, after it's landed. Coming back
 // (`back`), they slide in and develop again. Returns the scatter: turn() sends the tiles back the
 // way they came from where they've got to, stop() lets go of them (wherever they were going, they
 // end up as they are with no scatter), and `done` resolves once they're all there.
