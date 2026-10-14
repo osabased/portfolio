@@ -17,13 +17,12 @@
   <meta property="og:title" content="venuist">
   <meta property="og:description" content="Roblox scripting and developer commissions.">
   <meta name="twitter:card" content="summary">
-  <!-- The tab icon: the Venus sign, drawn in amber pixels on a 16×16 grid. -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><path fill='%23f2c48d' d='M5 0h6v1H5zM3 1h10v1H3zM2 2h3v1H2zM11 2h3v1h-3zM2 3h2v4H2zM12 3h2v4h-2zM2 7h3v1H2zM11 7h3v1h-3zM3 8h10v1H3zM5 9h6v1H5zM7 10h2v6H7zM4 12h8v2H4z'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://upload.wikimedia.org">
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
   <script>
     document.documentElement.classList.add('js');
     // No mouse to hover with (a touch screen), or reduced motion on: the demos play when they're
@@ -34,8 +33,7 @@
 <body>
   <canvas class="clouds" id="clouds" aria-hidden="true"></canvas>
 
-  <!-- Heat haze: makes the glow behind the name waver like air over hot ground. Under it, the
-       icons the page uses: the GitHub and Discord logos (from Simple Icons, CC0) and an envelope. -->
+  <!-- Heat haze filter for the glow behind the name. Icons: GitHub and Discord logos from Simple Icons (CC0), and an envelope. -->
   <svg class="defs" aria-hidden="true" focusable="false">
     <filter id="heat-haze" x="-40%" y="-150%" width="180%" height="400%">
       <feTurbulence type="fractalNoise" baseFrequency="0.015 0.07" numOctaves="2" seed="4" result="noise">
@@ -55,12 +53,7 @@
 
   <main class="wrap">
     <section class="view" id="home" aria-label="Work">
-      <!-- The projects: one big tile beside two small ones (stacked on phones).
-           Each card is one link: its title covers the whole card. Without script.js it jumps down to
-           the project's write-up; script.js turns it into a button that opens the write-up in place.
-           The demo is the biggest thing on the card: a still frame, and a short muted clip that
-           plays over it while the card is hovered (or, on a phone, when the picture is tapped).
-           To use your own, for each card:
+      <!-- To use your own, for each card:
              - the still: an image of one frame of the clip, in <img class="still">
              - the clip: an .mp4 (or .webm) in the <source>s, kept short, muted and small
              - data-start: the second in the clip the still was taken at, so it starts from there
@@ -105,12 +98,7 @@
         </article>
       </div>
 
-      <!-- The write-ups. script.js shows one at a time, in the tiles' place: the other tiles slide
-           away as they dither out, and the card's demo and title fly into the write-up's player and
-           heading. "← all projects" (or Esc) flies them back. The closed ones are hidden with
-           hidden="until-found", so Ctrl+F still finds text in them and opens the right one.
-           Without script.js all three show, one after another.
-           Empty rows in the meta list are hidden: fill in type (commission, personal or game
+      <!-- Empty rows in the meta list are hidden: fill in type (commission, personal or game
            contribution), role and time when you have them. A link with no href is hidden: give it
            one when it's real, and it shows with an arrow.
            Each write-up's player is the full demo, with sound and controls. To use a YouTube video
@@ -310,7 +298,6 @@
       <div class="block">
         <h2 id="contact-title" tabindex="-1">contact</h2>
         <p>To commission me, send a short description of what you need, your deadline, and your budget.</p>
-        <!-- A brief clients can copy and fill in, so their first message has what you need. -->
         <figure class="excerpt brief">
           <figcaption><span>brief</span><span class="excerpt-copy"><button class="copy" type="button" data-copy-from="brief-text" aria-describedby="brief-note">copy<span class="vh"> the brief template</span></button><span class="copy-note" id="brief-note" aria-live="polite"></span></span></figcaption>
 <pre id="brief-text">what I need:
@@ -321,8 +308,6 @@ examples or references:</pre>
         </figure>
         <!-- The status note can say how many slots are free and when you last updated it, for
              example: 2 slots · updated 12 Oct. Leave it empty to hide it.
-             Discord, email and GitHub show their icons instead of their names (the names are
-             still read out by screen readers).
              The roblox, devforum and talent hub rows are hidden until their link has an href. -->
         <ul class="links">
           <li><span class="k">status</span><span><span class="status">open for commissions</span><span class="status-note"></span></span></li>
@@ -347,6 +332,6 @@ examples or references:</pre>
     <a href="#contact">contact</a>
   </nav>
 
-  <script src="script.js?v=27"></script>
+  <script src="script.js?v=28"></script>
 </body>
 </html>

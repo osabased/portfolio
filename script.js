@@ -1,23 +1,17 @@
-// Reduced motion is checked live: the canvas follows reduceMotion (updated below when the
-// setting changes), and opening or closing a project checks motionPref.matches each time.
 const motionPref = matchMedia('(prefers-reduced-motion: reduce)');
 let reduceMotion = motionPref.matches;
 const root = document.documentElement;
 
-// ---------- the dither ----------
-// Things develop in, and the tiles break up, through an ordered (Bayer) dither: an 8px tile of 2px
-// squares, filled in this order. Pattern n shows the first n squares of the 16. They're drawn here
-// as tiny pictures, square for square on the screen's own pixels. (styles.css spells the even ones
-// out as SVG, for before this runs. But each SVG costs the browser a little document of its own,
-// built the first time it's used, which held up the first click, and they're slower to draw.)
+// Bayer-ordered dither masks are drawn to canvas rather than written as SVG: each SVG data URI costs a
+// document build on first use, which delayed the first click. styles.css has SVG frames for before this runs.
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
-const DITHER_TILE = 8;                     // px, so 2px squares
-const dither = [];                         // dither[n]: pattern n, from 0 to 16, as a mask image
+const DITHER_TILE = 8;
+const dither = [];
 
 function drawDither() {
   const scale = devicePixelRatio || 1;
   const size = Math.max(4, Math.round(DITHER_TILE * scale));
-  const edge = k => Math.round(k * size / 4);   // where the squares start and end, on whole pixels
+  const edge = k => Math.round(k * size / 4);
   const pad = document.createElement('canvas');
   pad.width = pad.height = size;
   const g = pad.getContext('2d');
@@ -30,14 +24,12 @@ function drawDither() {
     dither[n] = `url("${pad.toDataURL()}")`;
   }
   for (let n = 2; n < 16; n += 2) root.style.setProperty(`--dither-${n}`, dither[n]);
-  // Zooming, or moving to a screen with smaller or bigger pixels, draws them again to suit.
+  // Zooming or changing screens changes the pixel ratio, so the masks are drawn again.
   matchMedia(`(resolution: ${scale}dppx)`).addEventListener('change', drawDither, { once: true });
 }
 drawDither();
 
-// With a mouse, a card's demo plays while it's hovered. On a touch screen there's no hovering, so
-// it plays when it's tapped instead, and so it does with reduced motion on, so nothing moves until
-// it's asked to. index.html sets html.tap first; this keeps it up to date.
+// Demos play on tap instead of hover on touch screens and with reduced motion. index.html sets html.tap first.
 const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
 let tap = root.classList.contains('tap');
 function checkTap() {
@@ -46,18 +38,16 @@ function checkTap() {
 }
 checkTap();
 
-// ---------- view switching ----------
-
 const views = [...document.querySelectorAll('.view')];
 const navLinks = [...document.querySelectorAll('.dock a')];
 const dock = document.querySelector('.dock');
-const aliases = { work: 'home', about: 'contact' };   // old links still land somewhere sensible
+const aliases = { work: 'home', about: 'contact' };
 const siteName = document.title;
-let viewTitle = siteName;               // the tab's title for the view showing, until a project is open
+let viewTitle = siteName;
 
 function show(id) {
   id = aliases[id] || id;
-  const index = Math.max(0, views.findIndex(v => v.id === id));   // anything else, a project's address included, is home
+  const index = Math.max(0, views.findIndex(v => v.id === id));
   viewTitle = views[index].id === 'home' ? siteName : `${views[index].id} · ${siteName}`;
   views.forEach((v, i) => v.classList.toggle('is-active', i === index));
   navLinks.forEach((a, i) => {
@@ -68,19 +58,12 @@ function show(id) {
   window.scrollTo(0, 0);
 }
 
-show(location.hash.slice(1) || 'home');   // after that, route() at the bottom follows the address
-
-// ---------- project cards: hover, keyboard focus and open ----------
-// A card lights up while the mouse is over it or it has keyboard focus, and stays hot while its
-// write-up is open or its demo is playing. styles.css warms the card, and the cloud background
-// around it heats up too (below).
+show(location.hash.slice(1) || 'home');
 
 const projectList = document.querySelector('.projects');
 const home = document.getElementById('home');
 
-// Without this script each card's title is a link down to its write-up. With it, the title
-// becomes a button that opens the write-up in place. Each card's demo gets a play button too,
-// which only shows on touch screens (styles.css).
+// Without script each title is a link to its write-up; here it becomes a button, and each demo gets a play button.
 const cards = [...projectList.querySelectorAll('.project')].map(el => {
   const link = el.querySelector('a.card-open');
   const id = link.getAttribute('href').slice(1);
@@ -109,22 +92,17 @@ const cards = [...projectList.querySelectorAll('.project')].map(el => {
     el, button, panel: document.getElementById(id), demo, video, play,
     still: demo.querySelector('.still'), cardTitle: el.querySelector('.card-title'),
     label: el.querySelector('.card-label'), head: el.querySelector('.card-head'), about: el.querySelector('.card-about'),
-    start: parseFloat(video.dataset.start) || 0,   // the second the still was taken at
+    start: parseFloat(video.dataset.start) || 0,
     lit: false, open: false, playing: false,
     carried: false,   // whether its clip is off flying into a write-up, so it's left playing
-    heat: 0, target: 0,   // how hot the card is, and heading to: warms the clouds around it
+    heat: 0, target: 0,
   };
 });
-let hovered = null;        // the card under the mouse
-let focused = null;        // the card whose button has keyboard focus
-let openCard = null;       // the card whose write-up is open
-let reading = false;       // whether a write-up has taken the tiles' place
-const homeShown = () => home.classList.contains('is-active');   // not switched away to the contact view
-
-// ---------- demos ----------
-// Each card has a still frame over a short muted clip. Playing it dissolves the still away
-// through the dither (styles.css), once the clip's actually moving; stopping it develops the
-// still back in, and the clip goes back to where the still was taken, ready for next time.
+let hovered = null;
+let focused = null;
+let openCard = null;
+let reading = false;
+const homeShown = () => home.classList.contains('is-active');
 
 function playDemo(card) {
   if (card.playing || card.demo.classList.contains('no-clip')) return;
@@ -133,8 +111,7 @@ function playDemo(card) {
   clearTimeout(card.rewind);
   card.play.setAttribute('aria-pressed', 'true');
   card.demo.classList.add('is-loading');
-  // The clips aren't loaded until they're first played (preload="none"), so the first time, it
-  // goes to the still's second once the browser knows how long the clip is.
+  // preload="none": the clip's length is unknown until its metadata loads.
   if (video.readyState) { if (video.currentTime < card.start) video.currentTime = card.start; }
   else video.addEventListener('loadedmetadata', () => { if (video.currentTime < card.start) video.currentTime = card.start; }, { once: true });
   video.play()?.catch(error => {
@@ -151,7 +128,6 @@ function stopDemo(card) {
   card.video.pause();
   card.play.setAttribute('aria-pressed', 'false');
   card.demo.classList.remove('is-playing', 'is-loading');
-  // Back to the still's frame, once the still has developed back in over it.
   clearTimeout(card.rewind);
   card.rewind = setTimeout(() => {
     if (!card.playing && card.video.readyState) card.video.currentTime = card.start;
@@ -166,7 +142,6 @@ for (const card of cards) {
     demo.classList.remove('is-loading');
   });
   video.addEventListener('waiting', () => { if (card.playing) demo.classList.add('is-loading'); });
-  // Neither of the clip's files would load: the still stays, and the tag says so.
   [...video.querySelectorAll('source')].pop()?.addEventListener('error', () => {
     demo.classList.add('no-clip');
     stopDemo(card);
@@ -174,8 +149,6 @@ for (const card of cards) {
   });
 }
 
-// On a touch screen, a demo that's played stops again once it's mostly scrolled out of sight.
-// (With a mouse, it stops as soon as the mouse leaves the card.)
 const demoSight = new IntersectionObserver(entries => {
   for (const entry of entries) {
     const card = cards.find(card => card.demo === entry.target);
@@ -186,8 +159,8 @@ cards.forEach(card => demoSight.observe(card.demo));
 
 function relight() {
   for (const card of cards) {
-    card.lit = !reading && (card === hovered || card === focused);   // the tiles are out of sight while reading
-    if (!tap && !card.carried) {   // with a mouse, a lit card's demo plays, and only a lit card's
+    card.lit = !reading && (card === hovered || card === focused);
+    if (!tap && !card.carried) {
       if (card.lit) playDemo(card);
       else stopDemo(card);
     }
@@ -196,14 +169,13 @@ function relight() {
     // A card stays hot while its demo's away, and cools once it's back on the tile.
     const away = card.el.classList.contains('is-away');
     card.target = !reading && (card.lit || card.open || card.playing || away) ? 1 : 0;
-    if (reduceMotion) card.heat = card.target;   // no fading in or out
+    if (reduceMotion) card.heat = card.target;
   }
   invalidate();
 }
 
 const cardFor = node => cards.find(card => card.el.contains(node)) || null;
 
-// Mouse and pen only. On a touch screen a tap just opens the card, or plays its demo.
 // `pointerover` rather than `pointermove`: when the page scrolls a new card under a mouse that
 // isn't moving, the browser fires `pointerover` for it but no `pointermove`.
 projectList.addEventListener('pointerover', e => {
@@ -224,36 +196,29 @@ projectList.addEventListener('focusout', () => {
   relight();
 });
 
-// ---------- cloud halftone background ----------
-// Venus is wrapped in thick clouds, so the background is a halftone of them: a grid of
-// tiny square dots whose brightness follows slowly drifting, churning cloud cover.
-// Around a lit project card the clouds heat up: they thicken and glow amber.
-
 const canvas = document.getElementById('clouds');
 const ctx = canvas.getContext('2d');
-const PITCH = 7;                          // a dot every 7px…
-const DOT = 4;                            // …each one 4px square
+const PITCH = 7;
+const DOT = 4;
 const NODE = 3;                           // the cloud is measured every 3rd dot and blended in between
 const SHADES = [0, 7, 13, 20, 27, 33, 40, 47];   // dot alpha out of 255. Clouds use the first six (~13% at most); heat unlocks the last two
-const FRAME_MS = 100;                     // the clouds move slowly, so 10fps is plenty
-const START = Math.random() * 1000;       // different clouds on every visit
+const FRAME_MS = 100;
+const START = Math.random() * 1000;
 
-const COOL = [239, 233, 225];             // warm white, same as the text
-const HOT = [255, 166, 88];               // the orange of the glow behind the name
-const HEAT_REACH = 120;                   // how far the warmth spreads past a card's edge, in px
-const HEAT_LIFT = 0.45;                   // how much thicker the cloud gets at full heat
+const COOL = [239, 233, 225];
+const HOT = [255, 166, 88];
+const HEAT_REACH = 120;
+const HEAT_LIFT = 0.45;
 
 const fade = t => t * t * (3 - 2 * t);
 const mix = (a, b, t) => a + (b - a) * t;
 
-// Turns up to three integers into a repeatable random number from 0 to 1.
 function hash(i, j, k = 0) {
   let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(k, 1440662683)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-// Value noise: random values on a 3D grid, smoothly blended in between. Returns 0..1.
 function noise(x, y, z) {
   const i = Math.floor(x), j = Math.floor(y), k = Math.floor(z);
   const u = fade(x - i), v = fade(y - j), w = fade(z - k);
@@ -264,17 +229,13 @@ function noise(x, y, z) {
   );
 }
 
-// How thick the cloud is at a point, 0..1. One noise unit is about 260px.
 function cloud(x, y, t) {
-  // The whole sky drifts slowly left and a little downward.
   x = x / 260 + t * 0.03;
   y = y / 260 - t * 0.012;
-  // A broad, slow warp bends the coordinates so the clouds curl instead of sitting in round blobs.
   const bendX = noise(x * 0.5, y * 0.5, t * 0.01) - 0.5;
   const bendY = noise(x * 0.5 + 31, y * 0.5 - 17, t * 0.01 + 7) - 0.5;
   x += bendX * 1.4;
   y += bendY * 1.4;
-  // Three layers, each finer and quicker to change shape, so the clouds churn as they drift.
   const z = t * 0.04;
   return 0.6 * noise(x, y, z) + 0.28 * noise(x * 2.1 + 5, y * 2.1 - 9, z * 1.4) + 0.12 * noise(x * 4.3 - 3, y * 4.3 + 7, z * 1.9);
 }
@@ -289,11 +250,10 @@ tile.getContext('2d').fillRect(1, 1, DOT, DOT);
 const dots = ctx.createPattern(tile, 'repeat');
 
 let cols, rows, nodeCols, nodeRows, field, image;
-let grain;                                // each dot's own random dimming, which never changes
+let grain;
 let colNode, colFrac, rowNode, rowFrac;   // which measured points each column and row lies between, and how far along
 
 function resize() {
-  // One canvas pixel per CSS pixel; `image-rendering: pixelated` keeps the dots sharp on hi-dpi screens.
   // At least 1×1, since a canvas with no size (a hidden window, say) can't make image data.
   canvas.width = Math.max(1, canvas.clientWidth);
   canvas.height = Math.max(1, canvas.clientHeight);
@@ -322,14 +282,12 @@ function between(count) {
   return [node, frac];
 }
 
-// Samples the cloud at every NODE-th dot; paint() blends between the samples.
 function measure(t) {
   for (let b = 0, n = 0; b < nodeRows; b++) {
     for (let a = 0; a < nodeCols; a++, n++) field[n] = cloud(a * NODE * PITCH, b * NODE * PITCH, t);
   }
 }
 
-// Where the warm cards are on screen, and how hot each one is.
 function heatSources() {
   const sources = [];
   for (const card of cards) {
@@ -340,7 +298,6 @@ function heatSources() {
   return sources;
 }
 
-// How far each of `count` dots in a line is from the span lo..hi, squared (0 inside it).
 function reach(count, lo, hi) {
   const d2 = new Float64Array(count);
   for (let i = 0; i < count; i++) {
@@ -354,9 +311,6 @@ const REACH2 = HEAT_REACH * HEAT_REACH;
 
 function paint() {
   dirty = false;
-  // How warm the air is: full heat over a card, fading out HEAT_REACH px past its edge. Each
-  // card's distance from every column and every row is worked out once, and a row out of a
-  // card's reach doesn't look at it.
   const sources = heatSources().map(s => ({ heat: s.heat, dx2: reach(cols, s.left, s.right), dy2: reach(rows, s.top, s.bottom) }));
   const data = image.data;
   for (let j = 0, k = 0, c = 0; j < rows; j++) {
@@ -375,9 +329,6 @@ function paint() {
         const d2 = s.dx2[i] + s.dy2[j];
         if (d2 < REACH2) heat = Math.max(heat, s.heat * fade(1 - Math.sqrt(d2) / HEAT_REACH));
       }
-      // Thin cloud leaves clear patches of sky. The shades step like a halftone print, and
-      // each dot is dimmed by a random 0–20% (its grain) so the edges between steps break up a
-      // little. Heat thickens the cloud, so near a lit card dots appear even in clear sky.
       const density = fade(Math.min(1, Math.max(0, (thickness - 0.27) / 0.44))) + heat * HEAT_LIFT;
       const level = Math.floor(6 * density * grain[c]);
       if (heat) {
@@ -404,9 +355,7 @@ function paint() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// Eases each card's heat toward its target. The easing goes by elapsed time, not frames, so it
-// takes just as long on a slow or throttled screen. Heats up quickly, cools down slowly. Returns
-// true while any card's heat is still changing.
+// Eased by elapsed time rather than per frame, so it takes as long on a throttled screen.
 let lastFrame = performance.now();
 function warm(now) {
   const dt = Math.max(0, now - lastFrame) / 1000;
@@ -421,11 +370,10 @@ function warm(now) {
   return changing;
 }
 
-// The clouds only move 10 times a second, but while a card is heating or cooling (or a warm
-// card scrolls) the dots repaint every frame so the glow stays smooth.
+// The clouds step at FRAME_MS; the dots repaint every frame only while a card's glow is changing.
 let last = 0;
 let dirty = false;
-let ticking = false;   // whether tick() is running; it stops for reduced motion
+let ticking = false;
 function tick(now) {
   if (reduceMotion) { ticking = false; return; }
   requestAnimationFrame(tick);
@@ -437,7 +385,6 @@ function tick(now) {
   } else if (dirty) paint();
 }
 
-// Asks for a repaint. With reduced motion there's no tick, so it schedules one itself.
 function invalidate() {
   if (dirty) return;
   dirty = true;
@@ -455,13 +402,9 @@ window.addEventListener('resize', () => {
   placeOrigin();
   if (innerWidth !== lastWidth) { lastWidth = innerWidth; flight?.finish(); }
 });
-// A warm card that scrolls with the page takes its glow with it.
 const followCards = () => { if (cards.some(card => card.heat)) invalidate(); };
 window.addEventListener('scroll', followCards, { passive: true });
 
-// If reduced motion is switched on or off while the page is open, everything follows: the canvas
-// stops or starts, the demos stop and switch between hover and tap, and the name's heat haze
-// stills or wavers again. Plugging in a mouse, or a tablet's keyboard, switches them too.
 motionPref.addEventListener('change', () => {
   reduceMotion = motionPref.matches;
   cards.forEach(stopDemo);
@@ -483,31 +426,13 @@ finePointer.addEventListener('change', () => {
   relight();
 });
 
-// ---------- heat haze on the name ----------
-// With reduced motion the haze holds still. They're kept, so it can waver again if that changes.
-
+// Kept so the haze can be restored when reduced motion is switched off.
 const hazeWaves = [...document.querySelectorAll('#heat-haze animate')].map(wave => ({ wave, parent: wave.parentNode }));
 if (reduceMotion) hazeWaves.forEach(({ wave }) => wave.remove());
 
-// ---------- project details ----------
-// Each card opens its write-up in the tiles' place, as the page itself rather than a pop-up over
-// it: the other tiles get out of the way (scatter, below), the card's picture and title fly into
-// the write-up (flights, below), and the rest of it develops in through a dither, the pieces
-// nearest the card first, so it reads as heat spreading out from the card. Its "← all projects"
-// button, or Esc, closes it, and it all runs backwards.
-//
-// Opening scrolls the write-up into view, smoothly. Closing scrolls back to the card, smoothly,
-// rather than leaving the page wherever the write-up's going left it.
-//
-// The closed write-ups are hidden with hidden="until-found": they take no room, but the
-// browser's find-in-page still searches them, and finding something in one opens it.
-// Without this script they all show, one after another, and the cards jump down to them.
-//
-// Opening, swapping and closing take a few steps, with short waits between them for the
-// animations. What's open changes straight away; the picture catches up. Every open or close
-// bumps `generation`, and a step that finds it's changed while it waited stops there, so
-// clicking around quickly always ends on the last thing clicked.
-
+// Closed write-ups use hidden="until-found", so find-in-page reaches them and opens the match.
+// Every open or close bumps `generation`: a step resuming after a wait with a stale value stops,
+// so the last click wins.
 const details = document.getElementById('details');
 const frame = details.querySelector('.details-frame');
 const contactTitle = document.getElementById('contact-title');
@@ -520,17 +445,14 @@ const shownCard = () => cards.find(card => !card.panel.hasAttribute('hidden')) |
 for (const card of cards) {
   card.title = card.panel.querySelector('.detail-title');
   card.pageLabel = card.panel.querySelector('.detail-label');
-  card.full = card.panel.querySelector('.demo-full');   // the write-up's player
-  card.panel.querySelectorAll(DEV_PARTS).forEach(el => el.classList.add('dev'));   // the pieces that develop in
+  card.full = card.panel.querySelector('.demo-full');
+  card.panel.querySelectorAll(DEV_PARTS).forEach(el => el.classList.add('dev'));
   card.panel.setAttribute('hidden', 'until-found');
   card.panel.addEventListener('beforematch', () => openDetail(card, { instant: true, focus: false, scroll: false }));
 }
-details.classList.add('is-ready');   // styles.css keeps the panel out of sight until now, so the write-ups don't flash up
+details.classList.add('is-ready');
 
-// The first time a write-up shows, the browser has to lay it all out, which holds up the first
-// frame of its opening. So once the page has settled, each write-up is laid out once in the
-// background, one per idle moment, and hidden again before anything's drawn. Hidden this way it
-// keeps that layout, so opening it later starts straight away.
+// Lay each write-up out once in the background so the first open doesn't stall on layout.
 const whenIdle = window.requestIdleCallback || (fn => setTimeout(fn, 200));
 document.fonts.ready.then(() => {
   const queue = [...cards];
@@ -547,28 +469,22 @@ document.fonts.ready.then(() => {
   whenIdle(next);
 });
 
-// Keeps the address on the open project without jumping the page to it.
 function setHash(hash) {
   try { history.replaceState(history.state, '', hash || location.pathname + location.search); } catch {}
 }
 
-// Opening a write-up from the page adds a history entry, marked with its id, so Back closes it
-// and Back from the contact view comes back to it. An address that was followed to get here is
-// already in the history.
+// A click adds a history entry marked with its id, so Back closes the write-up. A followed address is already in history.
 function setProjectHash(id, push) {
   if (!push || location.hash === '#' + id) return setHash('#' + id);
   try { history.pushState({ project: id }, '', '#' + id); } catch { setHash('#' + id); }
 }
 
-// The panel's height right now. Stops it growing or shrinking, if it was, so it can start again
-// from here.
 function heightNow() {
   const height = frame.getBoundingClientRect().height;
   frame.getAnimations().forEach(a => { if (a.id === 'resize') a.cancel(); });
   return height;
 }
 
-// Grows or shrinks the panel from one height to another, then lets it fit its write-up again.
 function grow(from, to, ms) {
   if (Math.abs(from - to) < 1) return Promise.resolve(true);
   const resize = frame.animate({ height: [`${from}px`, `${to}px`] },
@@ -576,13 +492,11 @@ function grow(from, to, ms) {
   return resize.finished.then(() => { resize.cancel(); return true; }, () => false);
 }
 
-// While the page scrolls back to a card after its write-up closes, the page is held at its old
-// height, so taking the write-up away doesn't cut the scroll short with a jump. This lets go.
+// The body is held at its old height while the page scrolls back, so removing the write-up doesn't cut the scroll short.
 function releaseHeight() {
   document.body.style.minHeight = '';
 }
 
-// Scrolls the page to `y`, and resolves once it's there.
 function scrollToY(y, fast) {
   if (Math.abs(window.scrollY - y) < 1) return Promise.resolve();
   if (fast) { window.scrollTo(0, y); return Promise.resolve(); }
@@ -598,7 +512,6 @@ function scrollToY(y, fast) {
   });
 }
 
-// Hides a write-up, and stops anything playing in it.
 function hidePanel(card) {
   const panel = card.panel;
   if (!panel.hasAttribute('hidden')) {
@@ -609,13 +522,11 @@ function hidePanel(card) {
   panel.setAttribute('hidden', 'until-found');
 }
 
-// Dissolves a write-up, all at once, in 0.12s (styles.css).
 function leave(card) {
   card.panel.classList.remove('is-developing');
   card.panel.classList.add('is-leaving');
 }
 
-// Which card is open (or none), for the cards, their buttons and the heat.
 function markOpen(card) {
   openCard = card;
   for (const other of cards) {
@@ -630,7 +541,6 @@ function updateTitle() {
   document.title = openCard ? `${openCard.cardTitle.textContent} · ${siteName}` : viewTitle;
 }
 
-// Where a write-up develops in from: the top of the panel, in line with the middle of the open card.
 function placeOrigin() {
   if (!openCard) return;
   const box = details.getBoundingClientRect();
@@ -639,8 +549,6 @@ function placeOrigin() {
   details.style.setProperty('--origin-x', `${Math.round(Math.min(box.width - 16, Math.max(16, mid - box.left)))}px`);
 }
 
-// Starts the pieces of a write-up developing in. Each waits a little longer the further it is
-// from the origin: 30ms, plus 0.4ms for each pixel away, up to 0.29s in all (and `after` ms more).
 function develop(panel, after = 0) {
   const box = details.getBoundingClientRect();
   const ox = box.left + (parseFloat(details.style.getPropertyValue('--origin-x')) || box.width / 2);
@@ -656,14 +564,13 @@ function develop(panel, after = 0) {
   parts.forEach((el, i) => el.style.setProperty('--d', `${delays[i]}ms`));
   const running = panel.classList.contains('is-developing');
   panel.classList.remove('is-developing', 'is-leaving');
-  panel.querySelectorAll('.is-landed').forEach(el => el.classList.remove('is-landed'));   // flown in last time
+  panel.querySelectorAll('.is-landed').forEach(el => el.classList.remove('is-landed'));
   if (running) void panel.offsetWidth;   // so the animation starts over
   panel.classList.add('is-developing');
   clearTimeout(panel.devTimer);
   panel.devTimer = setTimeout(() => panel.classList.remove('is-developing'), 1200);
 }
 
-// Shows a card's write-up, developing it in if `animate` (starting `after` ms from now).
 function reveal(card, animate, after = 0) {
   const panel = card.panel;
   panel.removeAttribute('hidden');
@@ -672,13 +579,11 @@ function reveal(card, animate, after = 0) {
   else panel.classList.remove('is-developing');
 }
 
-// Where to scroll the page to bring a card back into sight: its middle in the middle of the screen
-// above the dock (or its top near the top, if it's taller than that). It can only go as far down
-// as the page will reach once it's `gone` px shorter. Null if the card's in sight already.
+// `gone` is how much shorter the page will be once the write-up closes, which limits how far down it can scroll.
 function backTo(card, gone) {
   const lowest = Math.max(0, root.scrollHeight - gone - innerHeight);
   const box = card.el.getBoundingClientRect();
-  const room = innerHeight - 96;             // the screen above the dock
+  const room = innerHeight - 96;
   if (box.top >= 0 && box.bottom <= room && window.scrollY <= lowest) return null;
   const y = box.height > room
     ? box.top + window.scrollY - 24
@@ -686,63 +591,45 @@ function backTo(card, gone) {
   return Math.round(Math.min(lowest, Math.max(0, y)));
 }
 
-// ---------- flights ----------
-// A tile opens its write-up in the grid's place, and the tile's picture, title and label fly
-// from the tile into place in the write-up. On the way the picture uncrops, from filling the tile
-// to the whole frame in the player, and the title and label grow into the write-up's, changing over
-// from one to the other through the dither. The dark plate under the title rides along with it and
-// breaks up as the title changes over. Closing flies them home again. What flies is a stand-in
-// (a "flyer") over the page, while the real ones at either end are hidden. If the tile's demo is
-// playing, the clip itself flies, still playing, and the write-up's player carries on from the
-// same second once it lands. Going home, the write-up's player flies, as it is. A flight that's
-// turned round on the way (Esc straight after opening, say) flies back from where it got to.
-
+// A flyer is a stand-in over the page while the real picture, title and labels at either end are hidden.
+// A flight turned round mid-way flies back from where it got to.
 const FLY_MS = 520;
 const FLY_EASE = 'cubic-bezier(.45, 0, .15, 1)';
-const FADE_AT = 170;                       // the titles change over from 170ms in to 170ms from the end
+const FADE_AT = 170;
 const MASK = CSS.supports('mask-image', 'none') ? 'maskImage' : 'webkitMaskImage';
 const FACE_STYLE = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textTransform', 'color'];
-let flight = null;                         // the flight on its way, or landing
+let flight = null;
 
-// The dither as keyframes, from nothing to all of it, or (`out`) back. Each frame holds until the
-// next, like develop and undevelop in styles.css.
 function ditherFrames(out) {
   const frames = [0, 2, 4, 6, 8, 10, 12, 14].map(n => dither[n]).concat('none').map(mask => ({ [MASK]: mask, easing: 'steps(1, end)' }));
   return out ? frames.reverse() : frames;
 }
 
-// Where an element is, from the corner of #home, which the flyers are placed in.
 function boxOf(el) {
   const r = el.getBoundingClientRect(), o = home.getBoundingClientRect();
   return { left: r.left - o.left, top: r.top - o.top, width: r.width, height: r.height };
 }
 const px = b => ({ left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` });
 
-// Where a picture sits in a frame: filling it and cropped (as on a tile), or all of it, fitted in (as in the player).
 function fit(frame, aspect, cover) {
   let width = frame.width, height = frame.width / aspect;
   if ((height < frame.height) === cover) { height = frame.height; width = height * aspect; }
   return { left: (frame.width - width) / 2, top: (frame.height - height) / 2, width, height };
 }
 
-// Where the first line of an element's words starts, on screen.
 function wordsAt(el) {
   const range = document.createRange();
   range.selectNodeContents(el);
   return range.getClientRects()[0] || el.getBoundingClientRect();
 }
 
-// How wide an element's words are: its longest line.
 function wordsWide(el) {
   const range = document.createRange();
   range.selectNodeContents(el);
   return range.getBoundingClientRect().width;
 }
 
-// Copies of titles, each set just like its title, with its words over the title's. A copy's only
-// as wide as the words, which wrap the same way in that (so it doesn't stick out past the page as
-// it flies). The titles are all measured, then the copies all put in and measured, so the page is
-// laid out twice, not twice for each.
+// The titles are all measured, then the copies all inserted and measured, so layout runs twice rather than twice per title.
 function facesOf(titles) {
   const looks = titles.map(title => {
     const style = getComputedStyle(title);
@@ -772,10 +659,7 @@ function facesOf(titles) {
   return faces;
 }
 
-// Copies of whole pieces of a tile or write-up (a plate, a label), each set just like the piece and
-// put over it. A copy's `at` is where its words start, from its own corner. Its ::after (a tile's
-// arrow, or the rule under its label) is copied through --after-* (styles.css). All measured first,
-// then all put in.
+// A ghost's ::after (a tile's arrow, the rule under a label) is copied through --after-* properties (styles.css).
 const GHOST_STYLE = [...FACE_STYLE, 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
   'backgroundColor', 'backgroundImage', 'backgroundPosition', 'backgroundSize', 'backgroundRepeat'];
 function ghostsOf(els) {
@@ -799,7 +683,7 @@ function ghostsOf(els) {
     ['--after-color', '--after-transform', '--after-opacity', '--after-display'].forEach((name, i) => ghost.style.setProperty(name, look.after[i]));
     ghost.querySelectorAll('*').forEach((part, i) => { if (look.unshown[i]) part.hidden = true; });
     Object.assign(ghost.style, px(look.box));
-    ghost.querySelector('.card-title')?.style.setProperty('visibility', 'hidden');   // the title flies on its own
+    ghost.querySelector('.card-title')?.style.setProperty('visibility', 'hidden');
     ghost.box = look.box;
     ghost.at = look.at;
     home.append(ghost);
@@ -809,40 +693,33 @@ function ghostsOf(els) {
 
 const playingNow = video => !video.paused && !video.ended && video.readyState >= 3;
 
-// A write-up's player or title shows again once its flight's landed. It doesn't develop in like
-// the rest (styles.css), until the next time the write-up opens.
 function landed(el) {
   if (!el.classList.contains('is-flown')) return;
   el.classList.remove('is-flown');
   el.classList.add('is-landed');
 }
 
-// Flies a card's picture and title from its tile into its write-up, or (`toTile`) back. Both ends
-// have to be on the page, where they'll be once it's landed. Returns the flight: turn() sends it
-// back the way it came, finish() lands it at once, and `landed` resolves once it's down.
 function fly(card, toTile) {
-  // Hidden first: with its transitions off while it's away (styles.css), the tile's colours are
-  // measured as they'll be when it's shown again, so nothing changes as the copies hand back to it.
+  // Hidden first, with transitions off while away (styles.css), so the tile's colours are measured as they'll be on return.
   card.el.classList.add('is-away');
   card.title.classList.add('is-flown');
   card.pageLabel.classList.add('is-flown');
   card.full.classList.add('is-flown');
 
   const tile = boxOf(card.demo), page = boxOf(card.full);
-  const plated = card.about.getClientRects().length ? [card.head, card.about] : [card.head];   // the small tiles' blurbs aren't shown
-  const ghosts = ghostsOf([...plated, card.label, card.pageLabel]);   // measured before anything moves
+  const plated = card.about.getClientRects().length ? [card.head, card.about] : [card.head];
+  const ghosts = ghostsOf([...plated, card.label, card.pageLabel]);
   const [tileLabel, pageLabel] = ghosts.slice(-2), plates = ghosts.slice(0, -2);
   const [tileFace, pageFace] = facesOf([card.cardTitle, card.title]);
   const player = card.full.querySelector('video');   // none, if it's an embed
   let pic;
-  if (!toTile && card.carried) pic = card.video;      // the tile's clip, playing
+  if (!toTile && card.carried) pic = card.video;
   else if (toTile && player) pic = player;
   else { pic = new Image(); pic.src = card.still.currentSrc || card.still.src; pic.alt = ''; }
-  const from = pic.parentNode ? { parent: pic.parentNode, next: pic.nextSibling } : null;   // where it goes back to
+  const from = pic.parentNode ? { parent: pic.parentNode, next: pic.nextSibling } : null;
   const aspect = (pic.videoWidth && pic.videoWidth / pic.videoHeight)
     || (card.still.naturalWidth && card.still.naturalWidth / card.still.naturalHeight) || 16 / 9;
 
-  // The player starts from the clip's second, so it can carry on where the clip leaves off.
   if (pic === card.video && player) {
     const at = card.video.currentTime;
     player.muted = true;
@@ -865,13 +742,10 @@ function fly(card, toTile) {
   const ls = parseFloat(tileLabel.style.fontSize) / parseFloat(pageLabel.style.fontSize);
   const ldx = pageLabel.box.left + pageLabel.at.left - tileLabel.box.left - tileLabel.at.left;
   const ldy = pageLabel.box.top + pageLabel.at.top - tileLabel.box.top - tileLabel.at.top;
-  // The labels grow from where their words start. The plates go along under the title without
-  // growing, which would spread them over the write-up as a dark slab.
+  // The plates travel without scaling, which would spread them over the write-up as a dark slab.
   for (const label of [tileLabel, pageLabel]) label.style.transformOrigin = `${label.at.left}px ${label.at.top}px`;
   const riders = [tileFace, pageFace, ...ghosts];
 
-  // Closing plays the same flight backwards. The titles change over in the middle of it, so
-  // they do it in the same place both ways.
   const timing = { duration: FLY_MS, easing: FLY_EASE, fill: 'both', direction: toTile ? 'reverse' : 'normal' };
   const fade = { ...timing, easing: 'linear', delay: FADE_AT, endDelay: FADE_AT, duration: FLY_MS - 2 * FADE_AT };
   const anims = [
@@ -895,8 +769,6 @@ function fly(card, toTile) {
   f.landed = new Promise(done => { f.resolve = done; });
   let timer = 0, parked = null;
 
-  // Down, and done with: the real picture and title take over, and the picture that flew goes
-  // back where it came from.
   const settle = () => {
     if (f.done) return;
     f.done = true;
@@ -924,9 +796,7 @@ function fly(card, toTile) {
     relight();
   };
 
-  // Touching down. In the write-up, a clip that flew waits over the player until the player's
-  // playing too (1.5s at most), then hands over. On the tile, a picture that isn't the tile's own
-  // clip dissolves into the tile's still.
+  // In the write-up, a clip that flew waits for the player to be playing (1.5s at most) before handing over.
   const arrive = force => {
     if (!f.moving) return;
     f.moving = false;
@@ -958,37 +828,20 @@ function fly(card, toTile) {
   return f;
 }
 
-// ---------- scatter ----------
-// The other tiles get out of the way of the opened one: each slides off, straight away from it,
-// and breaks up into the dither as it goes, a little after the one before, the nearest first. The
-// opened tile stays put and breaks up too. Everything on it is off flying by then, so all that does
-// is keep the empty tile out of sight until the tiles are put away, after it's landed. Coming back
-// (`back`), they slide in and develop again. Returns the scatter: turn() sends the tiles back the
-// way they came from where they've got to, stop() lets go of them (wherever they were going, they
-// end up as they are with no scatter), and `done` resolves once they're all there.
-//
-// A tile breaks up (or develops) behind a front that sweeps across it, out from the nearest point
-// on the opened tile's edge (or, for the opened tile, out from its middle). The front's a dithered
-// band, all of the tile on one side of it and none on the other. Where that can't be drawn, the
-// tiles break up all over at once instead.
+// The other tiles slide away from the opened one and break up behind a dithered front sweeping out from it;
+// where the mask can't be drawn they break up all at once.
+const SCATTER_MS = 440;
+const DITHER_MS = 300;
+let scattered = null;
 
-const SCATTER_MS = 440;                    // the slide
-const DITHER_MS = 300;                     // and the sweep, as they go
-let scattered = null;                      // the last scatter, till it's let go of (it holds the tiles where they got to)
-
-// The band's 16 levels, from 1/16 of the pixels to all of them. As masks, that's a ring for each
-// level, where the band's that far through, and that level's pattern, cut out of what's under it.
-// From the bottom up, ring 1, pattern 1, ring 2, pattern 2… so a pixel gets through the patterns
-// of every ring it's beyond, and as each pattern holds all the pixels of the one before, that
-// comes to the pattern of the furthest. The front's radius is --sweep, which the browser animates.
+// The band's 16 levels are stacked masks: a ring per level (radius --sweep, animated by the browser)
+// intersected with that level's dither pattern.
 const SWEEP_LEVELS = 16;
 const SWEEPS = CSS.supports('mask-composite', 'intersect') && (() => {
   try { CSS.registerProperty({ name: '--sweep', syntax: '<length>', inherits: false, initialValue: '0px' }); return true; }
   catch { return false; }
 })();
 
-// Masks an element to show what's beyond the front (or, `inside`, what's within it), the front
-// being a circle of radius --sweep round (x, y), in its own px, with the band `width` px deep.
 function sweepMask(el, x, y, width, inside) {
   const at = `circle at ${x}px ${y}px`;
   const image = [], size = [], composite = [];
@@ -1012,7 +865,6 @@ function unmask(el) {
   for (const p of ['maskImage', 'maskSize', 'maskRepeat', 'maskPosition', 'maskComposite']) el.style[p] = '';
 }
 
-// Sweeps a tile `b` away (or back) from the point (x, y) on the page.
 function sweep(el, b, x, y, back, timing) {
   const near = Math.hypot(Math.max(b.left - x, 0, x - b.right), Math.max(b.top - y, 0, y - b.bottom));
   const far = Math.hypot(Math.max(x - b.left, b.right - x), Math.max(y - b.top, b.bottom - y));
@@ -1029,14 +881,14 @@ function scatter(card, back) {
   // would make the browser work out that mask's style there and then, for each tile.
   const boxes = cards.map(other => other.el.getBoundingClientRect());
   const a = boxes[cards.indexOf(card)];
-  const push = Math.min(96, Math.max(48, innerWidth * 0.08));   // how far they slide
+  const push = Math.min(96, Math.max(48, innerWidth * 0.08));
   const anims = [];
   for (const [i, other] of cards.entries()) {
     const own = other === card;
     const b = boxes[i];
     const gap = Math.hypot(Math.max(b.left - a.right, 0, a.left - b.right), Math.max(b.top - a.bottom, 0, a.top - b.bottom));
     const timing = { duration: own ? 200 : SCATTER_MS, delay: own ? 0 : Math.round(30 + Math.min(100, gap * 0.25)), fill: 'both' };
-    // The sweep's quicker than the slide, so they're gone before the write-up's text comes up where they were.
+
     const fade = { ...timing, duration: own ? 260 : DITHER_MS };
     if (!SWEEPS) anims.push(other.el.animate(ditherFrames(!back), fade));
     else if (own) anims.push(sweep(other.el, b, b.left + b.width / 2, b.top + b.height / 2, back, fade));
@@ -1049,7 +901,6 @@ function scatter(card, back) {
     const dy = b.top + b.height / 2 - (a.top + a.height / 2);
     const far = Math.hypot(dx, dy) || 1;
     const off = `${Math.round(dx / far * push)}px ${Math.round(dy / far * push)}px`;
-    // Both ways, quick at first and slowing to a stop: shoved off, and settling back into place.
     anims.push(other.el.animate({ translate: back ? [off, '0px 0px'] : ['0px 0px', off] },
       { ...timing, easing: back ? 'cubic-bezier(.2, .7, .3, 1)' : 'cubic-bezier(.25, .5, .4, 1)' }));
   }
@@ -1060,7 +911,7 @@ function scatter(card, back) {
   s.turn = () => {
     s.back = !s.back;
     anims.forEach(a => a.reverse());
-    track();                                 // any that had finished are playing again
+    track();
   };
   s.stop = () => {
     s.running = false;
@@ -1072,8 +923,6 @@ function scatter(card, back) {
   return s;
 }
 
-// Scrolls up to the write-up's top, if it's above the screen, or far enough down to see all of
-// its player, if that's under the dock.
 function uncover(card, fast) {
   const top = details.getBoundingClientRect().top;
   const bottom = card.full.getBoundingClientRect().bottom;
@@ -1082,15 +931,12 @@ function uncover(card, fast) {
   if (Math.abs(by) >= 1) window.scrollBy({ top: by, behavior: fast ? 'auto' : 'smooth' });
 }
 
-// A write-up opens in the tiles' place. The other tiles get out of the way while the write-up
-// develops in and the tile's picture and title fly into it. (Another write-up, opened from the
-// address while this one's open, swaps in instead, in openDetail.)
 async function openInPlace(card, run, fast, focus, scroll) {
   const turning = !fast && flight?.moving && flight.card === card && flight.toTile;
   if (flight && !turning) flight.finish();
-  if (!fast && !turning) card.carried = card.demo.classList.contains('is-playing');   // its clip flies, still playing
+  if (!fast && !turning) card.carried = card.demo.classList.contains('is-playing');
   reading = true;
-  hovered = focused = null;                  // the tiles are going
+  hovered = focused = null;
   markOpen(card);
   details.classList.remove('is-closing');
   details.classList.add('is-open');
@@ -1106,9 +952,9 @@ async function openInPlace(card, run, fast, focus, scroll) {
   } else {
     home.classList.remove('is-reading', 'tiles-coming');
     home.classList.add('tiles-leaving');
-    if (scattered?.running && scattered.card === card && scattered.back) scattered.turn();   // they were on their way back
+    if (scattered?.running && scattered.card === card && scattered.back) scattered.turn();
     else { scattered?.stop(); scattered = scatter(card, false); }
-    reveal(card, true, 170);                 // as the tiles clear
+    reveal(card, true, 170);
     if (turning) flight.turn();
     else flight = fly(card, false);
     cards.forEach(other => { if (!other.carried) stopDemo(other); });
@@ -1119,18 +965,15 @@ async function openInPlace(card, run, fast, focus, scroll) {
   if (!fast) return tilesGone(run);
 }
 
-// Once the last tile's gone (or straight away, `now`), they're put away and let go of.
 async function tilesGone(run, now) {
   const gone = scattered;
   if (!now) await gone?.done;
-  if (run !== generation) return;            // something else was clicked meanwhile
+  if (run !== generation) return;
   home.classList.add('is-reading');
   home.classList.remove('tiles-leaving');
   gone?.stop();
 }
 
-// The write-up closes back into the tiles. The page scrolls back to the card, unless it's in sight
-// already (backTo), while the picture and title fly home and the tiles slide back in around them.
 async function closeInPlace(card, run, fast, onPage, returnFocus) {
   if (fast || !onPage) {
     flight?.finish();
@@ -1152,7 +995,7 @@ async function closeInPlace(card, run, fast, onPage, returnFocus) {
   if (flight && !turning) flight.finish();
   home.classList.remove('is-reading', 'tiles-leaving');
   home.classList.add('tiles-coming');
-  if (scattered?.running && scattered.card === card && !scattered.back) scattered.turn();   // they hadn't all gone yet
+  if (scattered?.running && scattered.card === card && !scattered.back) scattered.turn();
   else { scattered?.stop(); scattered = scatter(card, true); }
   const back = scattered;
   if (returnFocus) card.button.focus({ preventScroll: true });
@@ -1166,7 +1009,7 @@ async function closeInPlace(card, run, fast, onPage, returnFocus) {
   leave(card);
   relight();
   await wait(170);
-  if (run !== generation) return;            // it was opened again meanwhile
+  if (run !== generation) return;
   document.body.style.minHeight = `${root.scrollHeight}px`;
   heightNow();
   cards.forEach(hidePanel);
@@ -1183,7 +1026,7 @@ async function closeInPlace(card, run, fast, onPage, returnFocus) {
 // scroll: bring the write-up into view.
 // push: add a history entry for it (a click on the card, not a followed address).
 async function openDetail(card, { instant = false, focus = true, scroll = true, push = false } = {}) {
-  if (!homeShown()) return;            // the cards are switched away from
+  if (!homeShown()) return;
   setProjectHash(card.panel.id, push);
   const shown = shownCard();
   const closing = details.classList.contains('is-closing');
@@ -1196,18 +1039,16 @@ async function openDetail(card, { instant = false, focus = true, scroll = true, 
   releaseHeight();
   if (!reading) return openInPlace(card, run, fast, focus, scroll);
 
-  // Another write-up, while one's open (from the address, or find-in-page), swaps in: the old one
-  // dissolves, the panel grows or shrinks to fit, and the new one develops in.
   flight?.finish();
-  if (home.classList.contains('tiles-leaving')) tilesGone(run, fast);   // they hadn't all gone yet
+  if (home.classList.contains('tiles-leaving')) tilesGone(run, fast);
   markOpen(card);
   details.classList.remove('is-closing');
   details.classList.add('is-open');
   placeOrigin();
-  if (!fast && shown && shown !== card) {    // the old write-up dissolves first
+  if (!fast && shown && shown !== card) {
     leave(shown);
     await wait(120);
-    if (run !== generation) return;          // something else was clicked meanwhile
+    if (run !== generation) return;
   }
   const from = heightNow();
   cards.forEach(other => { if (other !== card) hidePanel(other); });
@@ -1232,13 +1073,10 @@ async function closeDetail({ instant = false, returnFocus = false } = {}) {
   reading = false;
   markOpen(null);
   if (location.hash === '#' + card.panel.id) setHash('');
-  const onPage = homeShown();                // not when the contact view's taken over
+  const onPage = homeShown();
   return closeInPlace(card, run, fast, onPage, returnFocus);
 }
 
-// A card opens its write-up, or closes it if it's already open. It's a real button, so Space
-// and Enter work too. On a touch screen, the play button over its demo plays the demo instead,
-// and stops any other that's playing.
 projectList.addEventListener('click', e => {
   const play = e.target.closest('.demo-play');
   if (play) {
@@ -1272,11 +1110,6 @@ document.addEventListener('keydown', e => {
   closeDetail({ returnFocus: inside });
 });
 
-// ---------- copy buttons ----------
-// A discord name can't be a link, so clicking it copies it, and the note beside it says so. The
-// brief's copy button does the same with its text (named in data-copy-from). Where the page
-// can't use the clipboard, the text is selected instead, ready to copy.
-
 for (const button of document.querySelectorAll('.copy')) {
   const note = document.getElementById(button.getAttribute('aria-describedby')) || button.nextElementSibling;
   const idle = note.textContent;
@@ -1296,51 +1129,40 @@ for (const button of document.querySelectorAll('.copy')) {
   });
 }
 
-// ---------- following the address ----------
-// The dock's links, "commission something like this", and Back and Forward all change the
-// address. Home or contact switches the view. A project's address opens that project. Going to
-// the contact view closes the write-up at once, and from a "commission" link, the focus goes to
-// the contact block.
-
 // The link that changed the address, if one did. The focus can't say: a link to a part of the
 // page that can't take focus (like #contact) takes the focus off the link before `hashchange`.
 let followed = null;
 // How the write-up that closeDetail() went back to close should close.
 let closeOnBack = {};
 document.addEventListener('click', e => {
-  const opensElsewhere = e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey;   // a new tab or window
+  const opensElsewhere = e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey;
   followed = opensElsewhere ? null : e.target.closest?.('a[href^="#"]') || null;
 }, true);
 
 function route() {
-  const fromHome = !!followed && home.contains(followed);   // a "commission" link, in a write-up
+  const fromHome = !!followed && home.contains(followed);
   followed = null;
   const closing = closeOnBack;
   closeOnBack = {};
   const id = location.hash.slice(1);
   show(id);
   updateTitle();
-  if (!homeShown()) {                        // the contact view
+  if (!homeShown()) {
     hovered = focused = null;
     closeDetail({ instant: true });
     relight();
     if (fromHome) contactTitle.focus();
     return;
   }
-  // A project's address, or the address of something inside its write-up (find-in-page may
-  // already have unhidden that write-up).
   const target = id ? document.getElementById(id) : null;
   const linked = cardById(id) || (target && cards.find(card => card.panel.contains(target))) || null;
   if (linked) openDetail(linked);
-  else if (openCard) closeDetail(closing);   // home, or no address: close
+  else if (openCard) closeDetail(closing);
 }
 window.addEventListener('hashchange', route);
 
-// ---------- start ----------
-
 relight();
 updateTitle();
-// Opened at a project's address: open it straight away, without moving the focus.
 const linked = cardById(location.hash.slice(1));
 if (linked) openDetail(linked, { instant: true, focus: false });
 if (!reduceMotion) { ticking = true; requestAnimationFrame(tick); }
