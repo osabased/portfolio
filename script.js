@@ -1195,6 +1195,9 @@ async function route() {
   else if (openCard) closeDetail(closing);
 }
 window.addEventListener('hashchange', route);
+// route() sets the scroll itself. Left to the browser, Back restores the entry's old scroll before
+// `hashchange`, so the view jumps while it's still dissolving.
+history.scrollRestoration = 'manual';
 
 relight();
 updateTitle();
