@@ -116,14 +116,17 @@ a {
   position: relative;
   isolation: isolate;
   display: inline-block;
-  margin: 0;
-  font: 600 clamp(2rem, 7vw, 2.75rem)/1 var(--display);
-  letter-spacing: -0.03em;
+  /* Room for the glow inside the box, since a dither over the name only covers its box (script.js). */
+  margin: -72px;
+  padding: 72px;
+  font: 600 clamp(3rem, 7.4vw, 6rem)/1 var(--display);
+  letter-spacing: -0.05em;
   color: #fff6e9;
   text-shadow:
     0 0 2px rgba(255, 236, 200, 0.9),
     0 0 10px rgba(255, 190, 110, 0.5);
   animation: rise 1.4s cubic-bezier(.2, .7, .2, 1) both;
+  pointer-events: none;   /* the room hangs over the page */
 }
 
 .name::before {
@@ -132,6 +135,7 @@ a {
   position: absolute;
   inset: 0;
   z-index: -1;
+  padding: inherit;
   color: #ffae57;
   text-shadow:
     0 0 6px #ff9b3d,
@@ -142,6 +146,12 @@ a {
   animation: simmer 3.6s ease-in-out infinite;
   pointer-events: none;
 }
+.name:focus { outline: none; }
+.name:focus-visible { outline: 1px solid var(--accent); outline-offset: -68px; }
+
+/* What's left of the last title while the next one comes in (script.js). */
+.name-copy { position: absolute; margin: 0; animation: none; }
+.name-copy.is-glow { color: transparent; text-shadow: none; }
 
 .block + .block { margin-top: 48px; }
 
@@ -426,6 +436,7 @@ html.js #home > :is(.projects, .details) { grid-area: 1 / 1; align-self: start; 
 .project.is-away *::after { transition: none; }
 
 .is-flown { opacity: 0; pointer-events: none; }
+.name.is-flown { filter: opacity(0); }   /* rise holds the name's opacity; hidden this way it can still take focus */
 .detail.is-developing .dev:is(.is-flown, .is-landed) { animation: none; }
 
 .flyer {
@@ -510,8 +521,6 @@ html:not(.js) .detail-close { display: none; }
   letter-spacing: -0.03em;
   color: var(--white-hot);
 }
-.detail-title:focus { outline: none; }
-.detail-title:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 
 .detail-grid {
   display: grid;
@@ -622,6 +631,8 @@ html:not(.js) .excerpt-copy { display: none; }
 .cta:focus-visible { outline: 2px solid var(--on-accent); outline-offset: -5px; }
 
 .dev,
+.name,
+.name::before,
 .js #contact.is-active .block,
 .view.is-leaving {
   -webkit-mask-size: 8px 8px;
@@ -631,7 +642,7 @@ html:not(.js) .excerpt-copy { display: none; }
   mask-clip: no-clip;            /* focus rings aren't cut off at the edges */
 }
 .detail.is-developing .dev { animation: develop .24s steps(1, end) var(--d, 0s) backwards; }
-.detail.is-developing :is(.detail-title, .detail-copy, .highlights).dev:not(.is-flown, .is-landed) {
+.detail.is-developing :is(.detail-copy, .highlights).dev:not(.is-flown, .is-landed) {
   animation:
     develop .24s steps(1, end) var(--d, 0s) backwards,
     cool .7s ease-out var(--d, 0s) backwards;

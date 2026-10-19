@@ -48,11 +48,21 @@ const aliases = { work: 'home', about: 'contact' };
 const siteName = document.title;
 let viewTitle = siteName;
 
+// The big name is the page's title: the view's name, or the open write-up's.
+const nameEl = document.querySelector('.name');
+const wrap = document.querySelector('.wrap');
+const homeName = nameEl.textContent;
+let viewName = homeName;
+let nameRun = null;
+let nameAway = false;   // dissolved for a switch, until the next page's name develops in
+nameEl.tabIndex = -1;
+
 const viewFor = id => views.find(v => v.id === (aliases[id] || id)) || views[0];
 
 function point(view) {
   const index = views.indexOf(view);
   viewTitle = view.id === 'home' ? siteName : `${view.id} · ${siteName}`;
+  viewName = view.id === 'home' ? homeName : view.id;
   navLinks.forEach((a, i) => {
     if (i === index) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -70,7 +80,54 @@ function show(id) {
   window.scrollTo(0, 0);
 }
 
+function setName(text) {
+  if (nameEl.textContent === text) return false;
+  nameEl.textContent = text;
+  nameEl.dataset.text = text;
+  return true;
+}
+
+// 'out' dissolves the name for a switch, 'in' develops it in, and 'glow' develops just the glow
+// behind a title that has flown in. null stops whichever is running.
+function fadeName(how, delay = 0) {
+  nameRun?.cancel();
+  nameRun = null;
+  nameAway = how === 'out' && !reduceMotion;
+  if (!how || reduceMotion) return;
+  const timing = how === 'out' ? { duration: VIEW_OUT_MS, fill: 'forwards' } : { duration: 360, delay, fill: 'backwards' };
+  if (how === 'glow') timing.pseudoElement = '::before';
+  nameRun = nameEl.animate(how === 'out' ? ditherFrames(true) : ditherFrames(false, 1), timing);
+}
+
+// A copy dissolves where the name was, so the name itself can take the next title for a flight to measure.
+function dropName(glowOnly) {
+  if (reduceMotion || nameAway || nameEl.classList.contains('is-flown')) return;
+  document.querySelectorAll('.name-copy').forEach(copy => copy.remove());
+  const copy = nameEl.cloneNode(true);
+  copy.className = glowOnly ? 'name name-copy is-glow' : 'name name-copy';
+  copy.removeAttribute('tabindex');
+  copy.setAttribute('aria-hidden', 'true');
+  // offsetWidth rounds, and a fraction of a pixel short would wrap the copy's last word.
+  Object.assign(copy.style, { left: `${nameEl.offsetLeft}px`, top: `${nameEl.offsetTop}px`, width: getComputedStyle(nameEl).width });
+  nameEl.after(copy);
+  copy.animate(ditherFrames(true), { duration: VIEW_OUT_MS, fill: 'forwards' }).onfinish = () => copy.remove();
+}
+
+function nameLanded() {
+  if (!nameEl.classList.contains('is-flown')) return;
+  nameEl.classList.remove('is-flown');
+  if (!nameAway) fadeName('glow');
+}
+
+// A title on more lines (or fewer) moves the page under the name, so the page eases there instead
+// of jumping. `from` is where the page started.
+function easeWrap(from) {
+  const by = from - wrap.offsetTop;
+  if (by && !reduceMotion) wrap.animate({ translate: [`0 ${by}px`, '0 0'] }, { duration: FLY_MS, easing: FLY_EASE, composite: 'add' });
+}
+
 show(location.hash.slice(1) || 'home');
+setName(viewName);
 
 const projectList = document.querySelector('.projects');
 const home = document.getElementById('home');
@@ -448,14 +505,14 @@ if (reduceMotion) hazeWaves.forEach(({ wave }) => wave.remove());
 const details = document.getElementById('details');
 const frame = details.querySelector('.details-frame');
 const contactTitle = document.getElementById('contact-title');
-const DEV_PARTS = ':scope > .detail-head, :scope > .detail-title, .detail-grid > :not(.detail-figure), .detail-figure > *, :scope > h3, :scope > .highlights, :scope > .detail-foot';
+const DEV_PARTS = ':scope > .detail-head, .detail-grid > :not(.detail-figure), .detail-figure > *, :scope > h3, :scope > .highlights, :scope > .detail-foot';
 let generation = 0;
 const wait = ms => new Promise(done => setTimeout(done, ms));
 const cardById = id => cards.find(card => card.panel.id === id) || null;
 const shownCard = () => cards.find(card => !card.panel.hasAttribute('hidden')) || null;
 
 for (const card of cards) {
-  card.title = card.panel.querySelector('.detail-title');
+  card.panel.querySelector('.detail-title').classList.add('vh');   // the big name shows it
   card.pageLabel = card.panel.querySelector('.detail-label');
   card.full = card.panel.querySelector('.demo-full');
   card.panel.querySelectorAll(DEV_PARTS).forEach(el => el.classList.add('dev'));
@@ -609,12 +666,23 @@ const FLY_MS = 520;
 const FLY_EASE = 'cubic-bezier(.45, 0, .15, 1)';
 const FADE_AT = 170;
 const MASK = CSS.supports('mask-image', 'none') ? 'maskImage' : 'webkitMaskImage';
-const FACE_STYLE = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textTransform', 'color'];
+const MASK_SIZE = MASK === 'maskImage' ? 'maskSize' : 'webkitMaskSize';
+const FACE_STYLE = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'lineHeight', 'letterSpacing', 'wordSpacing', 'textTransform', 'color', 'textShadow'];
 let flight = null;
 
-function ditherFrames(out) {
-  const frames = [0, 2, 4, 6, 8, 10, 12, 14].map(n => dither[n]).concat('none').map(mask => ({ [MASK]: mask, easing: 'steps(1, end)' }));
+function ditherFrames(out, step = 2) {
+  const shades = Array.from({ length: 16 / step }, (_, i) => dither[i * step]);
+  const frames = shades.concat('none').map(mask => ({ [MASK]: mask, easing: 'steps(1, end)' }));
   return out ? frames.reverse() : frames;
+}
+
+// A title flying to or from the big name grows a few times over, so its dither is drawn smaller as it
+// grows to keep the dots the size they are everywhere else.
+function zoomFrames(from, to) {
+  return [0, 0.25, 0.5, 0.75, 1].map(p => {
+    const at = key => from[key] + (to[key] - from[key]) * p;
+    return { transform: `translate(${at('x')}px, ${at('y')}px) scale(${at('scale')})`, [MASK_SIZE]: `${DITHER_TILE / at('scale')}px` };
+  });
 }
 
 function boxOf(el) {
@@ -714,7 +782,7 @@ function landed(el) {
 function fly(card, toTile) {
   // Hidden first, with transitions off while away (styles.css), so the tile's colours are measured as they'll be on return.
   card.el.classList.add('is-away');
-  card.title.classList.add('is-flown');
+  nameEl.classList.add('is-flown');
   card.pageLabel.classList.add('is-flown');
   card.full.classList.add('is-flown');
 
@@ -722,7 +790,7 @@ function fly(card, toTile) {
   const plated = card.about.getClientRects().length ? [card.head, card.about] : [card.head];
   const ghosts = ghostsOf([...plated, card.label, card.pageLabel]);
   const [tileLabel, pageLabel] = ghosts.slice(-2), plates = ghosts.slice(0, -2);
-  const [tileFace, pageFace] = facesOf([card.cardTitle, card.title]);
+  const [tileFace, pageFace] = facesOf([card.cardTitle, nameEl]);
   const player = card.full.querySelector('video');   // none, if it's an embed
   let pic;
   if (!toTile && card.carried) pic = card.video;
@@ -763,8 +831,8 @@ function fly(card, toTile) {
   const anims = [
     demo.animate([px(tile), px(page)], timing),
     media.animate([px(fit(tile, aspect, true)), px(fit(page, aspect, false))], timing),
-    tileFace.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${1 / s})` }], timing),
-    pageFace.animate([{ transform: `translate(${-dx}px, ${-dy}px) scale(${s})` }, { transform: 'none' }], timing),
+    tileFace.animate(zoomFrames({ x: 0, y: 0, scale: 1 }, { x: dx, y: dy, scale: 1 / s }), timing),
+    pageFace.animate(zoomFrames({ x: -dx, y: -dy, scale: s }, { x: 0, y: 0, scale: 1 }), timing),
     tileFace.animate(ditherFrames(true), fade),
     pageFace.animate(ditherFrames(false), fade),
     tileLabel.animate([{ transform: 'none' }, { transform: `translate(${ldx}px, ${ldy}px) scale(${1 / ls})` }], timing),
@@ -800,7 +868,7 @@ function fly(card, toTile) {
       if (!f.toTile) stopDemo(card);         // back on its tile, out of sight
     }
     card.el.classList.remove('is-away');
-    landed(card.title);
+    nameLanded();
     landed(card.pageLabel);
     landed(card.full);
     if (flight === f) flight = null;
@@ -815,7 +883,7 @@ function fly(card, toTile) {
     const dissolving = !force && f.toTile && pic !== card.video;
     if (!dissolving) riders.forEach(rider => rider.remove());   // else they stay over the picture until it's gone
     if (f.toTile) card.el.classList.remove('is-away');
-    else { landed(card.title); landed(card.pageLabel); }
+    else { nameLanded(); landed(card.pageLabel); }
     if (force) settle();
     else if (!f.toTile && pic === card.video && player && !playingNow(player)) {
       player.addEventListener('playing', settle, { once: true });
@@ -937,12 +1005,9 @@ function scatter(card, back) {
   return s;
 }
 
-function uncover(card, fast) {
-  const top = details.getBoundingClientRect().top;
-  const bottom = card.full.getBoundingClientRect().bottom;
-  const room = innerHeight - 96;
-  const by = top < 24 ? top - 24 : bottom > room ? Math.min(top - 24, bottom - room) : 0;
-  if (Math.abs(by) >= 1) window.scrollBy({ top: by, behavior: fast ? 'auto' : 'smooth' });
+// Up to the name, since that's the write-up's title.
+function uncover(fast) {
+  if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: fast ? 'auto' : 'smooth' });
 }
 
 async function openInPlace(card, run, fast, focus, scroll) {
@@ -963,19 +1028,26 @@ async function openInPlace(card, run, fast, focus, scroll) {
     home.classList.add('is-reading');
     cards.forEach(stopDemo);
     reveal(card, false);
+    setName(card.cardTitle.textContent);
   } else {
     home.classList.remove('is-reading', 'tiles-coming');
     home.classList.add('tiles-leaving');
     if (scattered?.running && scattered.card === card && scattered.back) scattered.turn();
     else { scattered?.stop(); scattered = scatter(card, false); }
+    const top = wrap.offsetTop;
+    dropName(false);
+    fadeName(null);
+    setName(card.cardTitle.textContent);
+    nameEl.classList.add('is-flown');
     reveal(card, true, 170);
     if (turning) flight.turn();
     else flight = fly(card, false);
+    easeWrap(top);
     cards.forEach(other => { if (!other.carried) stopDemo(other); });
   }
   relight();
-  if (focus) card.title.focus({ preventScroll: true });
-  if (scroll) uncover(card, fast);
+  if (focus) nameEl.focus({ preventScroll: true });
+  if (scroll) uncover(fast);
   if (!fast) return tilesGone(run);
 }
 
@@ -996,6 +1068,7 @@ async function closeInPlace(card, run, fast, onPage, returnFocus) {
     heightNow();
     cards.forEach(hidePanel);
     details.classList.remove('is-open', 'is-closing');
+    setName(viewName);
     if (onPage) {
       if (returnFocus) card.button.focus({ preventScroll: true });
       const y = backTo(card, 0);
@@ -1013,11 +1086,17 @@ async function closeInPlace(card, run, fast, onPage, returnFocus) {
   else { scattered?.stop(); scattered = scatter(card, true); }
   const back = scattered;
   if (returnFocus) card.button.focus({ preventScroll: true });
+  dropName(true);
+  if (turning) flight.turn();
+  else flight = fly(card, true);
+  const top = wrap.offsetTop;
+  setName(viewName);
+  nameEl.classList.remove('is-flown');
+  fadeName('in', 170);
   // The page gets shorter by as much as the write-up's taller than the tiles.
   const y = backTo(card, Math.max(0, details.getBoundingClientRect().height - projectList.getBoundingClientRect().height));
   const arrived = y === null ? Promise.resolve() : scrollToY(y, false);
-  if (turning) flight.turn();
-  else flight = fly(card, true);
+  easeWrap(top);
   const down = flight.landed;
   details.classList.add('is-closing');
   leave(card);
@@ -1045,7 +1124,7 @@ async function openDetail(card, { instant = false, focus = true, scroll = true, 
   const shown = shownCard();
   const closing = details.classList.contains('is-closing');
   if (openCard === card && shown === card && !closing) {
-    if (focus) card.title.focus({ preventScroll: true });
+    if (focus) nameEl.focus({ preventScroll: true });
     return;
   }
   const run = ++generation;
@@ -1061,15 +1140,17 @@ async function openDetail(card, { instant = false, focus = true, scroll = true, 
   placeOrigin();
   if (!fast && shown && shown !== card) {
     leave(shown);
+    fadeName('out');
     await wait(120);
     if (run !== generation) return;
   }
   const from = heightNow();
   cards.forEach(other => { if (other !== card) hidePanel(other); });
   reveal(card, !fast);
-  if (focus) card.title.focus({ preventScroll: true });
+  if (setName(card.cardTitle.textContent) || nameAway) fadeName(fast ? null : 'in');
+  if (focus) nameEl.focus({ preventScroll: true });
   if (!fast) grow(from, frame.getBoundingClientRect().height, 220);
-  if (scroll) uncover(card, fast);
+  if (scroll) uncover(fast);
 }
 
 // returnFocus: put the keyboard focus back on the card, for when it was in the write-up.
@@ -1118,7 +1199,7 @@ details.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || !openCard || e.defaultPrevented || e.isComposing) return;
   const active = document.activeElement;
-  const inside = !active || active === document.body || details.contains(active);
+  const inside = !active || active === document.body || active === nameEl || details.contains(active);
   if (!inside && !projectList.contains(active)) return;
   e.preventDefault();
   closeDetail({ returnFocus: inside });
@@ -1177,6 +1258,7 @@ async function route() {
   if (view !== shown && !motionPref.matches) {
     point(view);
     shown.classList.add('is-leaving');
+    fadeName('out');
     await wait(VIEW_OUT_MS);
     if (run !== switching) return;
   }
@@ -1185,14 +1267,17 @@ async function route() {
   if (!homeShown()) {
     hovered = focused = null;
     closeDetail({ instant: true });
+    setName(viewName);
     relight();
     if (fromHome) contactTitle.focus();
-    return;
+  } else {
+    const target = id ? document.getElementById(id) : null;
+    const linked = cardById(id) || (target && cards.find(card => card.panel.contains(target))) || null;
+    if (linked) openDetail(linked);
+    else if (openCard) closeDetail(closing);
+    else setName(viewName);
   }
-  const target = id ? document.getElementById(id) : null;
-  const linked = cardById(id) || (target && cards.find(card => card.panel.contains(target))) || null;
-  if (linked) openDetail(linked);
-  else if (openCard) closeDetail(closing);
+  if (nameAway) fadeName('in');
 }
 window.addEventListener('hashchange', route);
 // route() sets the scroll itself. Left to the browser, Back restores the entry's old scroll before
