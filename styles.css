@@ -87,9 +87,10 @@ a {
   text-underline-offset: 3px;
   transition: color .2s, text-decoration-color .2s;
 }
-a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+@media (hover: hover) { a:hover { color: var(--accent); text-decoration-color: var(--accent); } }
 
 ::selection { background: var(--accent); color: var(--on-accent); }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
 
 .wrap {
   position: relative;
@@ -297,12 +298,13 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 }
 .project:is(.is-lit, .is-open) .demo::after { box-shadow: inset 0 0 0 1px rgba(242, 196, 141, 0.35); }
 
+.project,
 .project .still {
   -webkit-mask-size: 8px 8px;
   mask-size: 8px 8px;
   -webkit-mask-repeat: repeat;
   mask-repeat: repeat;
-  animation: develop .3s steps(1, end) backwards;
+  animation: develop-fine .3s steps(1, end) backwards;
 }
 .project .demo.is-playing .still {
   animation: undevelop .24s steps(1, end) forwards;
@@ -493,10 +495,10 @@ html:not(.js) .detail + .detail { margin-top: 48px; padding-top: 28px; border-to
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.detail-close:hover { color: var(--text); }
+@media (hover: hover) { .detail-close:hover { color: var(--text); } }
 .detail-close:active { color: var(--accent-deep); }
 .detail-close .arrow { display: inline-block; transition: translate .2s steps(2, end); }
-.detail-close:hover .arrow { translate: -4px 0; }
+@media (hover: hover) { .detail-close:hover .arrow { translate: -4px 0; } }
 .detail-close kbd { font: inherit; color: rgba(155, 147, 139, 0.85); }
 @media (hover: none) { .detail-close kbd { display: none; } }
 @media (pointer: coarse) { .detail-close { padding: 16px 16px 16px 0; margin-block: -16px; } }
@@ -521,7 +523,7 @@ html:not(.js) .detail-close { display: none; }
 .detail-figure { margin: 0; }
 .detail-figure figcaption { margin-top: 10px; font-size: 12px; line-height: 1.6; color: var(--muted); }
 .detail-figure .credit a { color: var(--muted); }
-.detail-figure .credit a:hover { color: var(--accent); }
+@media (hover: hover) { .detail-figure .credit a:hover { color: var(--accent); } }
 .detail-copy > p { font-size: 13px; max-width: 62ch; }
 
 .meta { margin: 16px 0 0; font-size: 12px; line-height: 1.5; }
@@ -611,7 +613,7 @@ html:not(.js) .excerpt-copy { display: none; }
   -webkit-tap-highlight-color: transparent;
 }
 .cta::after { content: "→"; content: "→" / ""; margin-left: 1ch; }
-.cta:hover { color: var(--on-accent); background: #f7d3a6; }
+@media (hover: hover) { .cta:hover { color: var(--on-accent); background: #f7d3a6; } }
 .cta:active { background: var(--accent-deep); transition: none; }
 .details :focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
 
@@ -638,9 +640,11 @@ html:not(.js) .excerpt-copy { display: none; }
 .view.is-leaving { animation: undevelop .12s steps(1, end) forwards; }
 .view.is-leaving { pointer-events: none; }
 
+.project:nth-child(2 of .project),
 .view.is-active .project:nth-child(2 of .project) .demo:not(.is-playing) .still { animation-delay: .07s; }
+.project:nth-child(3 of .project),
 .view.is-active .project:nth-child(3 of .project) .demo:not(.is-playing) .still { animation-delay: .14s; }
-#contact.is-active .block { animation: develop .36s steps(1, end) backwards; }
+#contact.is-active .block { animation: develop-fine .36s steps(1, end) backwards; }
 #contact.is-active .block:nth-child(2) { animation-delay: .07s; }
 #contact.is-active .block:nth-child(n+3) { animation-delay: .14s; }
 
@@ -657,7 +661,7 @@ html:not(.js) .excerpt-copy { display: none; }
   padding: 6px 0;
 }
 .links .k { display: flex; align-items: center; color: var(--muted); transition: color .2s; }
-.links li:hover .k:has(.icon) { color: var(--accent); }
+@media (hover: hover) { .links li:hover .k:has(.icon) { color: var(--accent); } }
 .links :focus-visible { outline: 1px solid rgba(242, 196, 141, 0.7); outline-offset: 3px; }
 .links li:has(> a:not([href])) { display: none; }
 
@@ -675,10 +679,11 @@ html:not(.js) .excerpt-copy { display: none; }
   transition: color .2s, text-decoration-color .2s;
   -webkit-tap-highlight-color: transparent;
 }
-.copy:hover { color: var(--accent); text-decoration-color: var(--accent); }
+@media (hover: hover) { .copy:hover { color: var(--accent); text-decoration-color: var(--accent); } }
 .copy:active { color: var(--accent-deep); text-decoration-color: var(--accent-deep); transition: none; }
 .copy-note { margin-left: 1.5ch; font-size: 12px; color: var(--muted); transition: color .2s; }
 .copy-note.is-done { color: var(--open); }
+.is-copied { animation: glow .7s ease-out; }
 /* The Discord note is empty until something's copied, so the live region only speaks then. */
 #discord-note:empty::before { content: "copy"; content: "copy" / ""; }
 html:not(.js) .copy { cursor: text; text-decoration: none; }
@@ -737,7 +742,7 @@ html:not(.js) .copy-note { display: none; }
   transition: color .3s;
   -webkit-tap-highlight-color: transparent;
 }
-.dock a:hover { color: var(--text); }
+@media (hover: hover) { .dock a:hover { color: var(--text); } }
 .dock a:not([aria-current]):active { color: var(--accent-deep); transition: none; }
 .dock:has(a[aria-current]:active) .dock-indicator { background: var(--accent-deep); }
 .dock a[aria-current="page"] { color: var(--on-accent); font-weight: 500; }
@@ -806,8 +811,36 @@ html:not(.js) .dock-indicator { display: none; }
   84%   { -webkit-mask-image: var(--dither-2);  mask-image: var(--dither-2); }
   100%  { -webkit-mask-image: var(--dither-0);  mask-image: var(--dither-0); }
 }
+/* All 16 shades, for the develops long enough to show each for a frame. The odd frames are drawn
+   by script.js only, so until it runs each one holds the frame before. */
+@keyframes develop-fine {
+  0%     { -webkit-mask-image: var(--dither-0);                    mask-image: var(--dither-0); }
+  6.25%  { -webkit-mask-image: var(--dither-1, var(--dither-0));   mask-image: var(--dither-1, var(--dither-0)); }
+  12.5%  { -webkit-mask-image: var(--dither-2);                    mask-image: var(--dither-2); }
+  18.75% { -webkit-mask-image: var(--dither-3, var(--dither-2));   mask-image: var(--dither-3, var(--dither-2)); }
+  25%    { -webkit-mask-image: var(--dither-4);                    mask-image: var(--dither-4); }
+  31.25% { -webkit-mask-image: var(--dither-5, var(--dither-4));   mask-image: var(--dither-5, var(--dither-4)); }
+  37.5%  { -webkit-mask-image: var(--dither-6);                    mask-image: var(--dither-6); }
+  43.75% { -webkit-mask-image: var(--dither-7, var(--dither-6));   mask-image: var(--dither-7, var(--dither-6)); }
+  50%    { -webkit-mask-image: var(--dither-8);                    mask-image: var(--dither-8); }
+  56.25% { -webkit-mask-image: var(--dither-9, var(--dither-8));   mask-image: var(--dither-9, var(--dither-8)); }
+  62.5%  { -webkit-mask-image: var(--dither-10);                   mask-image: var(--dither-10); }
+  68.75% { -webkit-mask-image: var(--dither-11, var(--dither-10)); mask-image: var(--dither-11, var(--dither-10)); }
+  75%    { -webkit-mask-image: var(--dither-12);                   mask-image: var(--dither-12); }
+  81.25% { -webkit-mask-image: var(--dither-13, var(--dither-12)); mask-image: var(--dither-13, var(--dither-12)); }
+  87.5%  { -webkit-mask-image: var(--dither-14);                   mask-image: var(--dither-14); }
+  93.75% { -webkit-mask-image: var(--dither-15, var(--dither-14)); mask-image: var(--dither-15, var(--dither-14)); }
+  100%   { -webkit-mask-image: none;                               mask-image: none; }
+}
 
 @keyframes cool { from { color: var(--accent); } }
+@keyframes glow {
+  from {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+    text-shadow: 0 0 2px rgba(255, 236, 200, 0.9), 0 0 10px rgba(255, 190, 110, 0.5);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

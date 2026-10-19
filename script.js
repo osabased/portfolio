@@ -23,7 +23,7 @@ function drawDither() {
     });
     dither[n] = `url("${pad.toDataURL()}")`;
   }
-  for (let n = 2; n < 16; n += 2) root.style.setProperty(`--dither-${n}`, dither[n]);
+  for (let n = 1; n < 16; n++) root.style.setProperty(`--dither-${n}`, dither[n]);
   // Zooming or changing screens changes the pixel ratio, so the masks are drawn again.
   matchMedia(`(resolution: ${scale}dppx)`).addEventListener('change', drawDither, { once: true });
 }
@@ -892,6 +892,8 @@ function scatter(card, back) {
   // All measured first, then all set going: measuring a tile after the one before's been masked
   // would make the browser work out that mask's style there and then, for each tile.
   const boxes = cards.map(other => other.el.getBoundingClientRect());
+  // A tile still developing in after a return home would keep its develop mask over the sweep's.
+  for (const other of cards) other.el.getAnimations().forEach(run => { if (run.animationName === 'develop-fine') run.finish(); });
   const a = boxes[cards.indexOf(card)];
   const push = Math.min(96, Math.max(48, innerWidth * 0.08));
   const anims = [];
@@ -1126,14 +1128,21 @@ for (const button of document.querySelectorAll('.copy')) {
   const note = document.getElementById(button.getAttribute('aria-describedby')) || button.nextElementSibling;
   const idle = note.textContent;
   const source = button.dataset.copyFrom ? document.getElementById(button.dataset.copyFrom) : null;
+  const text = source || button;
+  text.addEventListener('animationend', e => {
+    if (e.target === text && e.animationName === 'glow') text.classList.remove('is-copied');
+  });
   let reset;
   button.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(source ? source.textContent : button.dataset.copy);
       note.textContent = 'copied';
       note.classList.add('is-done');
+      const glow = text.getAnimations().find(a => a.animationName === 'glow');
+      if (glow) glow.currentTime = 0;
+      else if (!reduceMotion) text.classList.add('is-copied');
     } catch {
-      getSelection().selectAllChildren(source || button);
+      getSelection().selectAllChildren(text);
       note.textContent = 'selected, copy it';
     }
     clearTimeout(reset);
