@@ -38,6 +38,9 @@ function checkTap() {
 }
 checkTap();
 
+// Safari on iOS leaves :active off unless there's a touch listener on the element or above it.
+document.addEventListener('touchstart', () => {}, { passive: true });
+
 const views = [...document.querySelectorAll('.view')];
 const navLinks = [...document.querySelectorAll('.dock a')];
 const dock = document.querySelector('.dock');
@@ -45,16 +48,25 @@ const aliases = { work: 'home', about: 'contact' };
 const siteName = document.title;
 let viewTitle = siteName;
 
-function show(id) {
-  id = aliases[id] || id;
-  const index = Math.max(0, views.findIndex(v => v.id === id));
-  viewTitle = views[index].id === 'home' ? siteName : `${views[index].id} · ${siteName}`;
-  views.forEach((v, i) => v.classList.toggle('is-active', i === index));
+const viewFor = id => views.find(v => v.id === (aliases[id] || id)) || views[0];
+
+function point(view) {
+  const index = views.indexOf(view);
+  viewTitle = view.id === 'home' ? siteName : `${view.id} · ${siteName}`;
   navLinks.forEach((a, i) => {
     if (i === index) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   dock.style.setProperty('--i', index);
+}
+
+function show(id) {
+  const view = viewFor(id);
+  point(view);
+  views.forEach(v => {
+    v.classList.toggle('is-active', v === view);
+    v.classList.remove('is-leaving');
+  });
   window.scrollTo(0, 0);
 }
 
@@ -1139,12 +1151,26 @@ document.addEventListener('click', e => {
   followed = opensElsewhere ? null : e.target.closest?.('a[href^="#"]') || null;
 }, true);
 
-function route() {
+// The view being left dissolves before the next one is shown. The dock moves at once, and the last
+// switch wins: one made back to the view still dissolving just keeps it.
+const VIEW_OUT_MS = 120;
+let switching = 0;
+
+async function route() {
   const fromHome = !!followed && home.contains(followed);
   followed = null;
   const closing = closeOnBack;
   closeOnBack = {};
   const id = location.hash.slice(1);
+  const run = ++switching;
+  const shown = views.find(v => v.classList.contains('is-active'));
+  const view = viewFor(id);
+  if (view !== shown && !motionPref.matches) {
+    point(view);
+    shown.classList.add('is-leaving');
+    await wait(VIEW_OUT_MS);
+    if (run !== switching) return;
+  }
   show(id);
   updateTitle();
   if (!homeShown()) {

@@ -235,6 +235,7 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .card-open::after {
   content: "";
@@ -262,6 +263,8 @@ a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 .project:is(.is-lit, .is-open) .card-head { color: var(--white-hot); }
 .project.is-lit .card-head::after { color: var(--accent); transform: translateX(4px); }
 .project.is-open .card-head::after { color: var(--accent); transform: rotate(90deg); }
+.project:has(.card-open:active) .card-label { color: var(--accent-deep); transition: none; }
+.project:has(.card-open:active) .demo::after { box-shadow: inset 0 0 0 1px var(--accent-deep); transition: none; }
 
 .card-open:focus-visible { outline: none; }
 .card-open:focus-visible::after { outline: 1px solid var(--accent); outline-offset: -1px; }
@@ -365,6 +368,7 @@ html.tap .project .demo-play {
   background: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  --glyph: var(--accent);
 }
 html.tap .demo-play::before,
 html.tap .demo-play::after {
@@ -384,7 +388,7 @@ html.tap .demo-play::after {
   width: 12px;
   height: 14px;
   translate: -40% -50%;
-  background: var(--accent);
+  background: var(--glyph);
   clip-path: polygon(0 0, 2px 0, 2px 1px, 4px 1px, 4px 2px, 6px 2px, 6px 3px, 8px 3px, 8px 4px, 10px 4px, 10px 5px, 12px 5px, 12px 9px, 10px 9px, 10px 10px, 8px 10px, 8px 11px, 6px 11px, 6px 12px, 4px 12px, 4px 13px, 2px 13px, 2px 14px, 0 14px);
 }
 html.tap .demo-play[aria-pressed="true"]::after {
@@ -392,8 +396,10 @@ html.tap .demo-play[aria-pressed="true"]::after {
   height: 10px;
   translate: -50% -50%;
   clip-path: none;
-  background: linear-gradient(90deg, var(--accent) 3px, transparent 3px 7px, var(--accent) 7px);
+  background: linear-gradient(90deg, var(--glyph) 3px, transparent 3px 7px, var(--glyph) 7px);
 }
+html.tap .demo-play:active { --glyph: var(--on-accent); }
+html.tap .demo-play:active::before { background: var(--accent-deep); }
 html.tap .demo.is-loading .demo-play::after { animation: blink 1s steps(2, jump-none) infinite; }
 html.tap .demo-play:focus-visible { outline: none; }
 html.tap .demo-play:focus-visible::before { outline: 1px solid var(--accent); outline-offset: 2px; clip-path: none; }
@@ -485,8 +491,10 @@ html:not(.js) .detail + .detail { margin-top: 48px; padding-top: 28px; border-to
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .detail-close:hover { color: var(--text); }
+.detail-close:active { color: var(--accent-deep); }
 .detail-close .arrow { display: inline-block; transition: translate .2s steps(2, end); }
 .detail-close:hover .arrow { translate: -4px 0; }
 .detail-close kbd { font: inherit; color: rgba(155, 147, 139, 0.85); }
@@ -600,9 +608,11 @@ html:not(.js) .excerpt-copy { display: none; }
   text-decoration: none;
   clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
   transition: background-color .2s;
+  -webkit-tap-highlight-color: transparent;
 }
 .cta::after { content: "→"; content: "→" / ""; margin-left: 1ch; }
 .cta:hover { color: var(--on-accent); background: #f7d3a6; }
+.cta:active { background: var(--accent-deep); transition: none; }
 .details :focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
 
 /* The corners clip anything drawn outside, so its focus ring is drawn inside. (After the rule
@@ -610,7 +620,8 @@ html:not(.js) .excerpt-copy { display: none; }
 .cta:focus-visible { outline: 2px solid var(--on-accent); outline-offset: -5px; }
 
 .dev,
-.js #contact.is-active .block {
+.js #contact.is-active .block,
+.view.is-leaving {
   -webkit-mask-size: 8px 8px;
   mask-size: 8px 8px;
   -webkit-mask-repeat: repeat;
@@ -623,7 +634,9 @@ html:not(.js) .excerpt-copy { display: none; }
     develop .24s steps(1, end) var(--d, 0s) backwards,
     cool .7s ease-out var(--d, 0s) backwards;
 }
-.detail.is-leaving .dev { animation: undevelop .12s steps(1, end) forwards; }
+.detail.is-leaving .dev,
+.view.is-leaving { animation: undevelop .12s steps(1, end) forwards; }
+.view.is-leaving { pointer-events: none; }
 
 .view.is-active .project:nth-child(2 of .project) .demo:not(.is-playing) .still { animation-delay: .07s; }
 .view.is-active .project:nth-child(3 of .project) .demo:not(.is-playing) .still { animation-delay: .14s; }
@@ -660,8 +673,10 @@ html:not(.js) .excerpt-copy { display: none; }
   user-select: text;
   cursor: pointer;
   transition: color .2s, text-decoration-color .2s;
+  -webkit-tap-highlight-color: transparent;
 }
 .copy:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.copy:active { color: var(--accent-deep); text-decoration-color: var(--accent-deep); transition: none; }
 .copy-note { margin-left: 1.5ch; font-size: 12px; color: var(--muted); transition: color .2s; }
 .copy-note.is-done { color: var(--open); }
 /* The Discord note is empty until something's copied, so the live region only speaks then. */
@@ -720,8 +735,11 @@ html:not(.js) .copy-note { display: none; }
   color: var(--muted);
   text-decoration: none;
   transition: color .3s;
+  -webkit-tap-highlight-color: transparent;
 }
 .dock a:hover { color: var(--text); }
+.dock a:not([aria-current]):active { color: var(--accent-deep); transition: none; }
+.dock:has(a[aria-current]:active) .dock-indicator { background: var(--accent-deep); }
 .dock a[aria-current="page"] { color: var(--on-accent); font-weight: 500; }
 .dock a:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
 
