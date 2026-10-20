@@ -165,6 +165,7 @@ const cards = [...projectList.querySelectorAll('.project')].map(el => {
     lit: false, open: false, playing: false,
     carried: false,   // whether its clip is off flying into a write-up, so it's left playing
     heat: 0, target: 0,
+    shadowX: 0, shadowY: 0, aimX: 0, aimY: 0,   // how far its glow is pushed off the tile, opposite its tilt
   };
 });
 let hovered = null;
@@ -249,11 +250,33 @@ const cardFor = node => cards.find(card => card.el.contains(node)) || null;
 // isn't moving, the browser fires `pointerover` for it but no `pointermove`.
 projectList.addEventListener('pointerover', e => {
   const card = e.pointerType === 'touch' ? null : cardFor(e.target);
-  if (card !== hovered) { hovered = card; relight(); }
+  if (card !== hovered) { untilt(hovered); hovered = card; relight(); }
 });
 projectList.addEventListener('pointerleave', () => {
-  if (hovered) { hovered = null; relight(); }
+  if (hovered) { untilt(hovered); hovered = null; relight(); }
 });
+
+const TILT = 3;            // degrees at the tile's edges
+const SHADOW_SHIFT = 40;  // px the glow moves at full tilt, away from the side pressed down
+projectList.addEventListener('pointermove', e => {
+  if (!hovered || e.pointerType === 'touch' || reduceMotion) return;
+  // Measured from the tile's untransformed box, since its own rect moves as it tilts.
+  const el = hovered.el, box = el.offsetParent.getBoundingClientRect();
+  const along = (at, size) => Math.min(1, Math.max(-1, at / size * 2 - 1));
+  const x = along(e.clientX - box.left - el.offsetLeft, el.offsetWidth);
+  const y = along(e.clientY - box.top - el.offsetTop, el.offsetHeight);
+  el.style.setProperty('--tilt-x', `${(-y * TILT).toFixed(2)}deg`);
+  el.style.setProperty('--tilt-y', `${(x * TILT).toFixed(2)}deg`);
+  hovered.aimX = -x * SHADOW_SHIFT;
+  hovered.aimY = -y * SHADOW_SHIFT;
+});
+
+function untilt(card) {
+  if (!card) return;
+  card.el.style.removeProperty('--tilt-x');
+  card.el.style.removeProperty('--tilt-y');
+  card.aimX = card.aimY = 0;
+}
 
 // Keyboard focus only. A click focuses the button too, but the mouse is already lighting that card.
 projectList.addEventListener('focusin', e => {
@@ -362,7 +385,8 @@ function heatSources() {
   for (const card of cards) {
     if (!card.heat) continue;
     const r = card.el.getBoundingClientRect();
-    if (r.width) sources.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom, heat: card.heat });
+    const x = card.shadowX, y = card.shadowY;
+    if (r.width) sources.push({ left: r.left + x, top: r.top + y, right: r.right + x, bottom: r.bottom + y, heat: card.heat });
   }
   return sources;
 }
@@ -431,6 +455,13 @@ function warm(now) {
   lastFrame = now;
   let changing = false;
   for (const card of cards) {
+    // Eased about as fast as the tilt's .2s transition, so the glow keeps up with the tile.
+    for (const [at, aim] of [['shadowX', 'aimX'], ['shadowY', 'aimY']]) {
+      if (card[at] === card[aim]) continue;
+      card[at] += (card[aim] - card[at]) * (1 - Math.exp(-dt / 0.07));
+      if (Math.abs(card[aim] - card[at]) < 0.1) card[at] = card[aim];
+      changing = true;
+    }
     if (card.heat === card.target) continue;
     card.heat += (card.target - card.heat) * (1 - Math.exp(-dt / (card.target > card.heat ? 0.2 : 0.45)));
     if (Math.abs(card.target - card.heat) < 0.004) card.heat = card.target;
